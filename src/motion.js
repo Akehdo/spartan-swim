@@ -54,7 +54,13 @@ export function initMotion() {
   }
 
   function refresh(root = document) {
-    if (reducedMotion.matches) return;
+    if (reducedMotion.matches) {
+      // A live preference change can happen while edited sheet text is loading.
+      root.querySelectorAll(headingSelector).forEach(heading => {
+        if (heading.hasAttribute('aria-label')) heading.setAttribute('aria-label', heading.innerText.replace(/\s+/g, ' ').trim());
+      });
+      return;
+    }
     root.querySelectorAll(headingSelector).forEach(heading => {
       splitHeading(heading);
       watch(heading);
