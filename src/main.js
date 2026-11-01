@@ -1,5 +1,6 @@
 import { defaultSettings, defaultSchedule, dayLabels, dayNames, availableGroups, groupLabel, normalizeSchedule } from './data.js';
 import { apiRequest, validEndpoint } from './api.js';
+import { initMotion } from './motion.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
@@ -8,6 +9,7 @@ const booking = $('#booking-dialog');
 const form = $('#booking-form');
 const submit = $('#booking-submit');
 const submitLabel = 'Отправить заявку';
+let motion;
 
 function icon(id, className = 'icon') {
   const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
@@ -82,6 +84,7 @@ function applySettings(input) {
   note.textContent = state.settings.contactNote;
   note.hidden = !state.settings.contactNote;
   document.title = `${state.settings.brandName} — ${state.settings.coachName} · плавание в Астане`;
+  motion?.refresh();
 }
 
 function renderSchedule() {
@@ -127,6 +130,7 @@ function renderSchedule() {
     card.append(header, slots);
     panel.append(card);
   }
+  motion?.refresh(panel);
 }
 
 function setAudience(audience, focusTab = false) {
@@ -326,6 +330,7 @@ $('#year').textContent = new Intl.DateTimeFormat('ru', { year: 'numeric', timeZo
 
 applySettings(defaultSettings);
 renderSchedule();
+motion = initMotion();
 
 async function bootstrap() {
   try {
