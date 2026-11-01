@@ -240,7 +240,7 @@ test('setup adds missing editable text settings while preserving existing traine
   h.context.setup();
   const result = h.get().settings;
   assert.equal(result.childrenTitle, 'Заголовок от тренера');
-  assert.match(result.coachIntro, /^Привет, я Медхат\./);
+  assert.match(result.coachIntro, /Помогу плавать увереннее\./);
   assert.equal(result.adultsTitle, 'Свобода движения.');
   assert.equal(settings.rows.filter(row => row[0] === 'coachIntro').length, 1);
 });

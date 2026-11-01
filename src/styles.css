@@ -52,3 +52,86 @@ dialog[open]::backdrop{animation:backdrop-enter .3s ease both}
   .reveal-word,.reveal-unit{opacity:1;transform:none;filter:none;transition:none}
   dialog[open],dialog[open]::backdrop{animation:none}
 }
+
+/* The compact page keeps only the coach, schedule and contact details. */
+.desktop-nav{font-size:14px;gap:32px}
+.hero{padding-bottom:64px}
+.hero-copy{padding-block:0}
+.hero h1{margin-top:0}
+.hero-description{font-size:16px;line-height:1.8;max-width:370px}
+.hero-actions .text-link{font-size:12px}
+.coach-section{padding-block:52px}
+.coach-grid{grid-template-columns:minmax(0,.8fr) minmax(0,1.2fr);gap:72px}
+.coach-portrait-wrap{height:380px;width:100%;max-width:360px;margin-inline:auto}
+.coach-copy h2{font-size:52px;line-height:1.15;max-width:520px}
+.coach-intro{font-size:16px;line-height:1.8;max-width:360px;margin-block:20px 26px}
+.coach-copy>.button{font-size:14px;min-height:50px}
+.schedule-section{padding-block:64px}
+.section-heading{margin-bottom:28px}
+.segmented-control button{font-size:13px}
+.schedule-timezone{font-size:12px}
+.day-chip{font-size:14px;min-width:48px;height:40px}
+.time-slot{padding:16px 18px}
+.slot-time{font-size:18px}
+.slot-meta{font-size:12px}
+.master-badge{font-size:10px}
+.schedule-footnote{justify-content:flex-end;gap:8px;font-size:12px;line-height:1.6}
+.schedule-footnote .icon{width:15px;height:15px}
+.footer-location{font-size:15px}
+.footer-phone{font-size:20px}
+.footer-bottom{font-size:11px}
+.footer-bottom>div{font-size:12px}
+.contact-note{font-size:14px;color:var(--text);margin-top:20px}
+.dialog-description,.booking-success>p{font-size:13px}
+.form-field>label{font-size:12px}
+.form-field input,.form-field select{font-size:14px;height:45px}
+.select-wrap>.icon{top:15px}
+.consent{font-size:11px}
+.form-whatsapp{font-size:12px}
+.form-message,.privacy-dialog p{font-size:13px}
+@media(max-width:900px){
+  .desktop-nav{font-size:12px;gap:22px}
+  .hero{padding-bottom:44px}
+  .hero-description{font-size:15px}
+  .hero-actions{flex-wrap:wrap}
+  .hero-actions .text-link{font-size:11px}
+  .coach-grid{gap:40px}
+  .coach-portrait-wrap{height:340px}
+  .coach-copy h2{font-size:44px}
+  .coach-intro{font-size:15px}
+  .coach-copy>.button{font-size:13px}
+  .schedule-timezone{font-size:11px}
+  .footer-phone{font-size:17px}
+  .footer-bottom{font-size:10px}
+  .footer-bottom>div{font-size:11px}
+}
+@media(max-width:700px){
+  .hero{padding-top:20px;padding-bottom:34px}
+  .hero-description{font-size:15px;max-width:330px}
+  .hero-actions{gap:20px;flex-wrap:wrap}
+  .hero-actions .button{font-size:13px;padding-inline:20px}
+  .hero-actions .text-link{font-size:12px}
+  .hero-visual{height:330px}
+  .coach-section{padding-block:34px}
+  .coach-grid{grid-template-columns:1fr;gap:28px}
+  .coach-portrait-wrap{height:360px;max-width:330px}
+  .coach-copy{text-align:center}
+  .coach-copy h2{font-size:40px;margin-inline:auto}
+  .coach-intro{margin:16px auto 22px;font-size:15px}
+  .schedule-section{padding-block:44px}
+  .schedule-toolbar{gap:16px}
+  .schedule-timezone{font-size:12px}
+  .schedule-card-header{margin-bottom:18px}
+  .schedule-footnote{flex-direction:row;justify-content:flex-start;font-size:12px}
+  .time-slot{padding:15px 14px}
+  .slot-time{font-size:18px}
+  .footer-top .brand{width:auto}
+  .footer-phone{font-size:20px}
+  .footer-location{margin-left:auto}
+  .footer-bottom{font-size:11px}
+  .footer-bottom>div{font-size:11px;gap:18px;flex-wrap:wrap}
+  .form-field input,.form-field select{font-size:16px}
+  .form-field>label{font-size:12px}
+  .consent{font-size:11px}
+  .privacy-dialog p{font-size:13px}
+}

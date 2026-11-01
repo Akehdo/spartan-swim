@@ -69,18 +69,8 @@ function applySettings(input) {
       $$('[data-instagram]').forEach(el => { el.href = instagram.href; });
     }
   } catch { /* Keep the supplied Instagram post when the edited value is invalid. */ }
-  $$('[data-price]').forEach(el => {
-    const price = state.settings[`${el.dataset.price}Price`];
-    if (price) el.textContent = price;
-  });
-  for (const [key, selector] of Object.entries({
-    childrenTitle: '.children-card h3', childrenDescription: '.children-card>p',
-    adultsTitle: '.adults-card h3', adultsDescription: '.adults-card>p', coachIntro: '.coach-intro',
-  })) {
-    if (safe[key] && safe[key] !== defaultSettings[key]) $(selector).textContent = safe[key];
-  }
-  let note = $('#contact-note');
-  if (!note) { note = make('p', 'contact-note'); note.id = 'contact-note'; $('.faq-heading').append(note); }
+  $('.coach-intro').textContent = state.settings.coachIntro;
+  const note = $('#contact-note');
   note.textContent = state.settings.contactNote;
   note.hidden = !state.settings.contactNote;
   document.title = `${state.settings.brandName} — ${state.settings.coachName} · плавание в Астане`;
@@ -105,7 +95,7 @@ function renderSchedule() {
     const days = make('h3', 'day-chip-group');
     days.setAttribute('aria-label', groups[0].days.map(day => dayNames[day]).join(', '));
     groups[0].days.forEach(day => days.append(make('span', 'day-chip', dayLabels[day])));
-    header.append(days, make('span', 'schedule-card-caption', state.audience === 'children' ? 'Детские группы' : 'Взрослые группы'));
+    header.append(days);
     const slots = make('div', 'schedule-slots');
     for (const group of groups.toSorted((a, b) => a.start.localeCompare(b.start))) {
       const isMaster = group.level === 'master';
@@ -121,7 +111,7 @@ function renderSchedule() {
         button.title = 'Действующая группа. Набор новичков не ведётся.';
       } else if (!group.active) meta.append(make('span', '', 'Набор закрыт'), icon('lock'));
       else {
-        meta.append(make('span', 'slot-dot'), make('span', '', 'Выбрать время'), icon('diagonal'));
+        meta.append(icon('diagonal'));
         button.addEventListener('click', () => openBooking(state.audience, group.id));
       }
       button.append(time, meta);

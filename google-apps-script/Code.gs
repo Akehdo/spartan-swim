@@ -16,12 +16,12 @@ function setup() {
   var defaultSettings = [
     ['brandName', 'В потоке'], ['coachName', 'Медхат Даиров'],
     ['heroTitle', 'Плавать легче, чем кажется.'],
-    ['heroDescription', 'Для детей и взрослых в Астане. С нуля — до уверенной техники.'],
+    ['heroDescription', 'Плавание для детей и взрослых в Астане.'],
     ['childrenTitle', 'Уверенность в воде.'],
     ['childrenDescription', 'Знакомимся с водой, учимся дышать и осваиваем технику.'],
     ['adultsTitle', 'Свобода движения.'],
     ['adultsDescription', 'Учимся плавать с нуля или совершенствуем технику.'],
-    ['coachIntro', 'Привет, я Медхат. Помогу плавать увереннее.'],
+    ['coachIntro', 'Тренер по плаванию. Помогу плавать увереннее.'],
     ['location', 'Астана'], ['phone', '+7 707 620 4904'], ['whatsapp', '77076204904'],
     ['instagram', 'https://www.instagram.com/p/DPTBBraiJYW/'],
     ['childrenPrice', ''], ['adultsPrice', ''], ['contactNote', '']

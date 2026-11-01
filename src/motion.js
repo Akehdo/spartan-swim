@@ -3,13 +3,12 @@ export function initMotion() {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reducedMotion.matches || !('IntersectionObserver' in window)) return { refresh() {} };
 
-  const headingSelector = '.hero h1, .section-heading h2, .program-card h3, .coach-copy h2, .faq-heading h2';
+  const headingSelector = '.hero h1, .section-heading h2, .coach-copy h2';
   const unitSelector = [
-    '.hero-copy>.eyebrow', '.hero-description', '.hero-actions', '.hero-coach', '.hero-visual',
-    '.hero-highlights>div', '.section-kicker', '.section-heading>p', '.program-card',
-    '.coach-portrait-wrap', '.coach-intro', '.approach-list>div', '.coach-copy>.text-link',
+    '.hero-description', '.hero-actions', '.hero-visual',
+    '.coach-portrait-wrap', '.coach-intro', '.coach-copy>.button',
     '.schedule-toolbar', '.schedule-card', '.schedule-footnote',
-    '.faq-heading>p', '.faq-heading>.text-link', '.faq-list details', '.footer-top',
+    '.footer-top',
   ].join(', ');
 
   const observer = new IntersectionObserver(entries => {
