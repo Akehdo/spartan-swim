@@ -255,10 +255,10 @@ function sendNotificationLocked_(sheet, rowNumber) {
     var text = '🏊 Новая заявка · В потоке\n\n' +
       'Контакт: ' + plainCell_(row[3]) + '\n' +
       'Телефон: ' + plainCell_(row[4]) + '\n' +
+      'WhatsApp: https://wa.me/' + plainCell_(row[4]).replace(/\D/g, '') + '\n' +
       (row[5] ? 'Участник: ' + plainCell_(row[5]) + (row[6] !== '' ? ' · ' + row[6] + ' лет' : '') + '\n' : '') +
       'Уровень: ' + (row[7] === 'beginner' ? 'Начинающий' : 'Уверенно держится на воде') + '\n' +
-      'Группа: ' + row[9] + '\n' +
-      'Заявка: ' + row[2];
+      'Группа: ' + row[9];
     var sent = false;
     try {
       var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {

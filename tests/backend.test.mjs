@@ -138,6 +138,9 @@ test('a child application is durably saved, formulas escaped, and sent as plain 
   assert.equal(h.messages[0].timeoutSeconds, undefined);
   assert.match(h.messages[0].data.text, /<b>Саша<\/b>/);
   assert.match(h.messages[0].data.text, /ПН СР ПТ · 08:00–09:00/);
+  assert.match(h.messages[0].data.text, /https:\/\/wa\.me\/77070001234/);
+  assert.doesNotMatch(h.messages[0].data.text, /Заявка:/);
+  assert.equal(h.messages[0].data.text.includes(body.registrationId), false);
 });
 
 test('master, inactive, and unknown groups cannot be booked by a forged client', () => {
