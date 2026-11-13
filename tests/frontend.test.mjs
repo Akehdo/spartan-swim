@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultSchedule, availableGroups, normalizeSchedule, groupLabel } from '../src/data.js';
+import { defaultSchedule, defaultCoaches, normalizeCoaches, availableGroups, normalizeSchedule, groupLabel } from '../src/data.js';
 import { validEndpoint, apiRequest } from '../src/api.js';
 
 test('All fifteen requested groups and their days match the brief', () => {
@@ -30,6 +30,19 @@ test('Remote schedule validation rejects invalid or ambiguous data, accepts inte
   }
   assert.throws(() => normalizeSchedule([defaultSchedule[0], defaultSchedule[0]]));
   assert.equal(groupLabel(defaultSchedule[0]), 'Пн / Ср / Пт · 08:00–09:00');
+});
+
+test('Coach data preserves the supplied team and accepts the manager API contract', () => {
+  assert.deepEqual(normalizeCoaches(defaultCoaches), defaultCoaches);
+  assert.equal(defaultCoaches.filter(coach => coach.senior).length, 1);
+  assert.equal(defaultCoaches.find(coach => coach.senior).name, 'Медхат Даиров');
+  assert.deepEqual(normalizeCoaches([]), []);
+  assert.equal(normalizeCoaches([{ ...defaultCoaches[1], id: 'Coach_01', image: '/images/PORTRAIT.AVIF' }])[0].id, 'Coach_01');
+  assert.equal(normalizeCoaches([{ ...defaultCoaches[1], image: 'https://example.com/portrait.jpg' }])[0].image, 'https://example.com/portrait.jpg');
+  for (const patch of [{ id: '../coach' }, { active: 'false' }, { senior: 1 }, { image: 'javascript:alert(1)' }, { image: '//example.com/image.jpg' }, { image: 'https://user:password@example.com/image.jpg' }, { image: '/images/../secret.png' }, { name: ' ' }]) {
+    assert.throws(() => normalizeCoaches([{ ...defaultCoaches[1], ...patch }]));
+  }
+  assert.throws(() => normalizeCoaches([defaultCoaches[1], defaultCoaches[1]]));
 });
 
 test('Only deployed Google Apps Script HTTPS endpoints are accepted', () => {

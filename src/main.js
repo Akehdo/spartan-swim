@@ -1,14 +1,15 @@
-import { defaultSettings, defaultSchedule, dayLabels, dayNames, availableGroups, groupLabel, normalizeSchedule } from './data.js';
+import { defaultSettings, defaultSchedule, defaultCoaches, normalizeCoaches, dayLabels, dayNames, availableGroups, groupLabel, normalizeSchedule } from './data.js';
 import { apiRequest, validEndpoint } from './api.js';
 import { initMotion } from './motion.js';
 
 const $ = selector => document.querySelector(selector);
 const $$ = selector => [...document.querySelectorAll(selector)];
-const state = { settings: { ...defaultSettings }, schedule: defaultSchedule, audience: 'children', endpoint: '', busy: false, requestId: '', fingerprint: '', hasSucceeded: false };
+const state = { settings: { ...defaultSettings }, schedule: defaultSchedule, coaches: defaultCoaches, hasRemoteCoaches: false, initializing: true, audience: 'children', endpoint: '', busy: false, requestId: '', fingerprint: '', hasSucceeded: false };
 const booking = $('#booking-dialog');
 const form = $('#booking-form');
 const submit = $('#booking-submit');
 const submitLabel = 'Отправить заявку';
+submit.disabled = true;
 let motion;
 
 function icon(id, className = 'icon') {
@@ -40,6 +41,9 @@ function applySettings(input) {
   for (const key of Object.keys(defaultSettings)) {
     if (typeof input?.[key] === 'string' && input[key].length <= 2000) safe[key] = input[key];
   }
+  // Keep old deployments compatible while their Sheet is being upgraded.
+  const legacy = { brandName: 'В потоке', heroTitle: 'Плавать легче, чем кажется.', heroDescription: 'Плавание для детей и взрослых в Астане.', coachIntro: 'Тренер по плаванию. Помогу плавать увереннее.' };
+  for (const [key, value] of Object.entries(legacy)) if (safe[key] === value) safe[key] = defaultSettings[key];
   state.settings = { ...defaultSettings, ...safe };
   for (const key of ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'phone', 'location']) {
     if (!state.settings[key].trim()) state.settings[key] = defaultSettings[key];
@@ -49,10 +53,10 @@ function applySettings(input) {
   });
   const heading = $('#hero-title');
   const title = state.settings.heroTitle;
-  const comma = title.indexOf(',');
+  const accentAt = title === defaultSettings.heroTitle ? title.lastIndexOf(' в воде.') : title.indexOf(',') + 1;
   heading.replaceChildren();
-  if (comma > 0 && comma < title.length - 1) {
-    heading.append(document.createTextNode(title.slice(0, comma + 1)), document.createElement('br'), make('em', '', title.slice(comma + 1).trim()));
+  if (accentAt > 0 && accentAt < title.length - 1) {
+    heading.append(document.createTextNode(title.slice(0, accentAt)), document.createElement('br'), make('em', '', title.slice(accentAt).trim()));
   } else heading.textContent = title;
   // Long custom headlines wrap naturally instead of overflowing the layout.
   heading.style.whiteSpace = title.length > 45 ? 'normal' : '';
@@ -73,8 +77,71 @@ function applySettings(input) {
   const note = $('#contact-note');
   note.textContent = state.settings.contactNote;
   note.hidden = !state.settings.contactNote;
-  document.title = `${state.settings.brandName} — ${state.settings.coachName} · плавание в Астане`;
+  document.title = `${state.settings.brandName} — школа плавания · ${state.settings.location}`;
   motion?.refresh();
+}
+
+function renderCoaches() {
+  const active = state.coaches.filter(coach => coach.active);
+  const senior = active.find(coach => coach.senior);
+  $('#senior-coach').hidden = !senior;
+  if (senior) {
+    $('#coach-title').textContent = state.hasRemoteCoaches ? senior.name : state.settings.coachName;
+    $('#senior-role').textContent = senior.role;
+    const portrait = $('.coach-portrait');
+    portrait.src = senior.image;
+    portrait.alt = `${senior.name} — ${senior.role}, Spartan Swim`;
+    $('#senior-book').dataset.coach = senior.id;
+  }
+  const grid = $('#coaches-grid');
+  grid.replaceChildren();
+  active.filter(coach => coach !== senior).forEach((coach, index) => {
+    const card = make('article', 'coach-card');
+    const visual = make('div', 'coach-card-image');
+    const photo = make('img');
+    photo.src = coach.image;
+    photo.alt = `${coach.name} — ${coach.role}`;
+    photo.width = 1086;
+    photo.height = 1448;
+    photo.loading = 'lazy';
+    visual.append(photo);
+    const body = make('div', 'coach-card-body');
+    const number = make('span', 'coach-number', String(index + 1).padStart(2, '0'));
+    number.setAttribute('aria-hidden', 'true');
+    const name = make('h3', 'coach-name');
+    const [surname, ...rest] = coach.name.split(/\s+/);
+    name.append(document.createTextNode(surname), document.createElement('br'), make('span', '', rest.join(' ')));
+    const button = make('button', 'coach-book', 'Записаться ');
+    button.type = 'button';
+    button.setAttribute('aria-label', `Записаться: ${coach.name}`);
+    button.append(icon('diagonal'));
+    button.addEventListener('click', () => openBooking(state.audience, '', coach.id));
+    body.append(number, make('p', 'coach-role', coach.role), name, button);
+    card.append(visual, body);
+    grid.append(card);
+  });
+  updateCoachOptions();
+  motion?.refresh();
+}
+
+function updateCoachOptions() {
+  const select = $('#booking-coach');
+  const selected = select.value;
+  select.replaceChildren();
+  const any = make('option', '', 'Помогите выбрать');
+  any.value = '';
+  select.append(any);
+  state.coaches.filter(coach => coach.active).forEach(coach => {
+    const option = make('option', '', `${coach.name}${coach.senior ? ' · старший тренер' : ''}`);
+    option.value = coach.id;
+    select.append(option);
+  });
+  select.value = state.coaches.some(coach => coach.active && coach.id === selected) ? selected : '';
+  const supported = state.hasRemoteCoaches || (!state.endpoint && !state.initializing);
+  select.closest('.form-field').hidden = !supported;
+  select.disabled = !supported;
+  if (!supported) select.value = '';
+  $('#senior-book').firstChild.textContent = supported ? 'Записаться к тренеру ' : 'Записаться на тренировку ';
 }
 
 function renderSchedule() {
@@ -171,7 +238,7 @@ function restoreWhatsapp() {
   link.href = whatsappUrl();
 }
 
-function openBooking(audience = state.audience, groupId = '') {
+function openBooking(audience = state.audience, groupId = '', coachId = '') {
   if (state.busy) {
     if (!booking.open) booking.showModal();
     document.body.classList.add('dialog-open');
@@ -186,7 +253,9 @@ function openBooking(audience = state.audience, groupId = '') {
   $('#booking-content').hidden = false;
   $('#booking-success').hidden = true;
   updateFormAudience(audience || state.audience, groupId);
-  showMessage('');
+  updateCoachOptions();
+  $('#booking-coach').value = !$('#booking-coach').disabled && state.coaches.some(coach => coach.active && coach.id === coachId) ? coachId : '';
+  showMessage(state.initializing ? 'Загружаем актуальное расписание…' : '');
   restoreWhatsapp();
   closeMenu();
   booking.showModal();
@@ -200,7 +269,7 @@ function closeMenu() {
   $('#menu-toggle').setAttribute('aria-label', 'Открыть меню');
 }
 
-$$('[data-book]').forEach(button => button.addEventListener('click', () => openBooking(button.dataset.book || state.audience)));
+$$('[data-book]').forEach(button => button.addEventListener('click', () => openBooking(button.dataset.book || state.audience, '', button.dataset.coach || '')));
 $$('[data-audience]').forEach(tab => {
   tab.addEventListener('click', () => setAudience(tab.dataset.audience));
   tab.addEventListener('keydown', event => {
@@ -221,25 +290,26 @@ $('#booking-phone').addEventListener('input', event => {
 
 function whatsappMessage(payload, audience, group) {
   return [
-    'Здравствуйте, Медхат! Хочу записаться на плавание.',
+    'Здравствуйте, Spartan Swim! Хочу записаться на плавание.',
     `Занятие: ${audience === 'children' ? 'для ребёнка' : 'для взрослого'}`,
     `Имя${audience === 'children' ? ' родителя' : ''}: ${payload.name}`,
     `Телефон: ${payload.phone}`,
     ...(audience === 'children' ? [`Ребёнок: ${payload.participantName}, возраст: ${payload.age}`] : []),
     `Опыт: ${payload.experience === 'beginner' ? 'с нуля' : 'есть опыт'}`,
     `Группа: ${groupLabel(group)}`,
+    `Предпочитаемый тренер: ${state.coaches.find(coach => coach.id === payload.coachId)?.name || 'помогите выбрать'}`,
   ].join('\n');
 }
 
 form.addEventListener('submit', async event => {
   event.preventDefault();
-  if (state.busy || !form.reportValidity()) return;
+  if (state.busy || state.initializing || !form.reportValidity()) return;
   const data = new FormData(form);
   const audience = data.get('audience');
   const group = availableGroups(state.schedule, audience).find(group => group.id === data.get('groupId'));
   if (!group) { showMessage('Выберите доступную группу. В группы «Мастер» набор не ведётся.'); return; }
   const payload = {
-    action: 'register', groupId: group.id,
+    action: 'register', groupId: group.id, coachId: String(data.get('coachId') || ''),
     name: String(data.get('name')).trim(),
     phone: String(data.get('phone')).trim(),
     participantName: audience === 'children' ? String(data.get('participantName')).trim() : String(data.get('name')).trim(),
@@ -288,6 +358,7 @@ form.addEventListener('submit', async event => {
     state.busy = false;
     [...form.elements].forEach(el => { el.disabled = false; });
     for (const name of ['participantName', 'age']) form.elements[name].disabled = audience !== 'children';
+    updateCoachOptions();
     submit.removeAttribute('aria-busy');
     form.removeAttribute('aria-busy');
     submit.replaceChildren(document.createTextNode(submitLabel + ' '), icon('diagonal'));
@@ -319,6 +390,7 @@ document.addEventListener('keydown', event => { if (event.key === 'Escape') clos
 $('#year').textContent = new Intl.DateTimeFormat('ru', { year: 'numeric', timeZone: 'Asia/Qyzylorda' }).format(new Date());
 
 applySettings(defaultSettings);
+renderCoaches();
 renderSchedule();
 motion = initMotion();
 
@@ -332,8 +404,16 @@ async function bootstrap() {
     state.endpoint = config.appsScriptUrl;
     const data = await apiRequest(state.endpoint, null, { signal: AbortSignal.timeout(15000) });
     const schedule = normalizeSchedule(data.schedule);
+    let coaches = defaultCoaches;
+    let hasRemoteCoaches = false;
+    try {
+      if (data.coaches !== undefined) { coaches = normalizeCoaches(data.coaches); hasRemoteCoaches = true; }
+    } catch { /* Keep schedule and booking available if a coach row needs correcting. */ }
     applySettings(data.settings);
     state.schedule = schedule;
+    state.coaches = coaches;
+    state.hasRemoteCoaches = hasRemoteCoaches;
+    renderCoaches();
     renderSchedule();
     if (booking.open && !state.busy) {
       updateFormAudience(form.elements.audience.value, form.elements.groupId.value);
@@ -342,6 +422,9 @@ async function bootstrap() {
   } catch {
     $('#schedule-status').textContent = 'Не удалось обновить расписание. Перед записью уточните актуальное время у тренера.';
     $('#schedule-status').hidden = false;
+  } finally {
+    state.initializing = false;
+    if (!state.busy) { submit.disabled = false; updateCoachOptions(); }
   }
 }
 

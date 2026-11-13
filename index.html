@@ -3,24 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="theme-color" content="#064a45" />
-  <meta name="description" content="Плавание с Медхатом Даировым в Астане. Занятия для детей и взрослых: с первых движений до уверенной техники. Расписание и запись на тренировку." />
-  <meta property="og:title" content="В потоке — плавание с Медхатом Даировым" />
-  <meta property="og:description" content="Плавать легче, чем кажется. Занятия для детей и взрослых в Астане." />
+  <meta name="theme-color" content="#091c35" />
+  <meta name="description" content="Spartan Swim — школа плавания для детей и взрослых в Астане. Команда тренеров, расписание и запись на тренировку." />
+  <meta property="og:title" content="SPARTAN SWIM — характер рождается в воде" />
+  <meta property="og:description" content="Плавание для детей и взрослых в Астане. Выберите тренера и удобное время." />
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://medhat-swim-astana.snowy-bull-0669.chatgpt.site/" />
   <meta property="og:image" content="https://medhat-swim-astana.snowy-bull-0669.chatgpt.site/images/swimming-hero.jpg" />
   <link rel="canonical" href="https://medhat-swim-astana.snowy-bull-0669.chatgpt.site/" />
-  <title>В потоке — плавание с Медхатом Даировым в Астане</title>
+  <title>SPARTAN SWIM — школа плавания в Астане</title>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/src/styles.css" />
   <script type="module" src="/src/main.js"></script>
 </head>
 <body>
   <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-spartan" viewBox="0 0 48 48"><path d="M8 26C5 13 15 3 28 4c9 1 14 8 14 17l-6-3C35 10 24 8 18 15c-4 4-5 8-4 12l-6-1Z" fill="currentColor" stroke="none"/><path d="M18 21c4-8 16-7 20 1l-12 1 12 5-2 15-10-7-5 7-2-16-5 3 4-9Z" fill="currentColor" stroke="none"/><path d="m26 24 11 4-10 1Z" fill="#091c35" stroke="none"/></symbol>
     <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-6-6 6 6-6 6" /></symbol>
     <symbol id="i-diagonal" viewBox="0 0 24 24"><path d="M6 18 18 6M6 6h12v12" /></symbol>
     <symbol id="i-wave" viewBox="0 0 24 24"><path d="M2 8c3-5 6 5 10 0s7 5 10 0M2 15c3-5 6 5 10 0s7 5 10 0" /></symbol>
@@ -40,62 +41,67 @@
   <a class="skip-link" href="#main">Перейти к содержимому</a>
   <header class="site-header">
     <div class="shell header-inner">
-      <a class="brand" href="#" aria-label="В потоке — на главную">
-        <span class="brand-mark"><svg class="icon"><use href="#i-wave" /></svg></span>
-        <span><strong data-setting="brandName">В потоке</strong></span>
+      <a class="brand" href="#" aria-label="SPARTAN SWIM — на главную">
+        <span class="brand-mark"><svg class="icon"><use href="#i-spartan" /></svg></span><span class="brand-text"><strong>SPARTAN</strong><span>SWIM</span></span>
       </a>
       <nav class="desktop-nav" aria-label="Основная навигация">
-        <a href="#coach">Тренер</a><a href="#schedule">Расписание</a><a href="#contacts">Контакты</a>
+        <a href="#coach">Команда</a><a href="#schedule">Расписание</a><a href="#contacts">Контакты</a>
       </nav>
       <button class="button button-dark header-cta" data-book>Записаться <svg class="icon"><use href="#i-diagonal" /></svg></button>
       <button class="menu-toggle" id="menu-toggle" aria-label="Открыть меню" aria-expanded="false" aria-controls="mobile-nav"><span></span><span></span></button>
     </div>
-    <nav id="mobile-nav" class="mobile-nav" aria-label="Мобильная навигация" hidden><a href="#coach">Тренер</a><a href="#schedule">Расписание</a><a href="#contacts">Контакты</a><button class="button button-dark" data-book>Записаться на занятие</button></nav>
+    <nav id="mobile-nav" class="mobile-nav" aria-label="Мобильная навигация" hidden><a href="#coach">Команда</a><a href="#schedule">Расписание</a><a href="#contacts">Контакты</a><button class="button button-dark" data-book>Записаться на занятие</button></nav>
   </header>
 
   <main id="main">
-    <section class="hero shell" aria-labelledby="hero-title">
-      <div class="hero-copy">
-        <h1 id="hero-title">Плавать легче,<br><em>чем кажется.</em></h1>
-        <p class="hero-description" data-setting="heroDescription">Плавание для детей и взрослых в Астане.</p>
-        <div class="hero-actions"><button class="button button-dark button-large" data-book>Хочу на тренировку <svg class="icon"><use href="#i-diagonal" /></svg></button><a class="text-link" href="#schedule">Смотреть расписание <svg class="icon"><use href="#i-arrow" /></svg></a></div>
-      </div>
-      <div class="hero-visual">
-        <img class="hero-photo" src="/images/swimming-hero.jpg" alt="Пловец в прозрачной бирюзовой воде бассейна" width="1672" height="941" fetchpriority="high" />
-      </div>
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-grid shell"><div class="hero-copy">
+        <p class="eyebrow">Школа плавания · <span data-setting="location">Астана</span></p>
+        <h1 id="hero-title">Характер рождается<br><em>в воде.</em></h1>
+        <p class="hero-description" data-setting="heroDescription">Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.</p>
+        <div class="hero-actions"><button class="button button-dark button-large" data-book>Начать плавать <svg class="icon"><use href="#i-diagonal" /></svg></button><a class="text-link" href="#coach">Наша команда <svg class="icon"><use href="#i-arrow" /></svg></a></div>
+      </div><div class="hero-visual"><img class="hero-photo" src="/images/swimming-hero.jpg" alt="Пловец на дорожке бассейна" width="1672" height="941" fetchpriority="high" /><span class="hero-image-note">ТВОЯ СТИХИЯ. ТВОЙ ХАРАКТЕР.</span></div></div>
+      <div class="hero-bottom shell"><span class="hero-bottom-note">Дети и взрослые <span aria-hidden="true">/</span> Любой уровень подготовки</span><a class="hero-bottom-link" href="#schedule">Выбрать время <svg class="icon"><use href="#i-arrow" /></svg></a></div>
     </section>
 
-<section class="coach-section" id="coach" aria-labelledby="coach-title"><div class="shell coach-grid">
-      <div class="coach-portrait-wrap"><img class="coach-portrait" src="/images/medhat-coach.jpg" alt="Медхат Даиров, тренер по плаванию" width="1122" height="1402" loading="lazy" /></div>
-      <div class="coach-copy"><h2 id="coach-title" data-setting="coachName">Медхат Даиров</h2><p class="coach-intro">Тренер по плаванию. Помогу плавать увереннее.</p><button class="button button-dark" data-book>Записаться к тренеру <svg class="icon"><use href="#i-diagonal" /></svg></button></div>
-    </div></section>
+    <section class="team-section section shell" id="coach" aria-labelledby="team-title">
+      <div class="section-heading"><div><p class="section-kicker">01 / КОМАНДА SPARTAN</p><h2 id="team-title">Твой тренер.<br>Твоя поддержка.</h2></div><p class="section-description">Знакомьтесь с нашей командой.<br>Выберите тренера — и сделайте первый шаг.</p></div>
+      <article class="senior-coach" id="senior-coach"><div class="coach-portrait-wrap"><img class="coach-portrait" src="/images/medhat-coach.jpg" alt="Медхат Даиров — старший тренер Spartan Swim" width="1122" height="1402" loading="lazy" /></div><div class="coach-copy"><p class="eyebrow" id="senior-role">Старший тренер</p><h3 id="coach-title" data-setting="coachName">Медхат Даиров</h3><p class="coach-intro">Старший тренер Spartan Swim. Поможет подобрать тренера и группу по вашему уровню.</p><button class="button button-dark" id="senior-book" data-book data-coach="medhat">Записаться к тренеру <svg class="icon"><use href="#i-diagonal" /></svg></button></div></article>
+      <div class="coaches-grid" id="coaches-grid"></div>
+    </section>
 
     <section class="section shell schedule-section" id="schedule" aria-labelledby="schedule-title">
-      <div class="section-heading"><h2 id="schedule-title">Расписание</h2></div>
-      <div class="schedule-toolbar"><div class="segmented-control" role="tablist" aria-label="Расписание по возрасту"><button role="tab" id="tab-children" aria-selected="true" aria-controls="schedule-panel" data-audience="children" tabindex="0">Для детей</button><button role="tab" id="tab-adults" aria-selected="false" aria-controls="schedule-panel" data-audience="adults" tabindex="-1">Для взрослых</button></div><span class="schedule-timezone"><svg class="icon"><use href="#i-clock" /></svg>60 минут</span></div>
+      <div class="section-heading"><div><p class="section-kicker">02 / ВРЕМЯ ДЛЯ СЕБЯ</p><h2 id="schedule-title">Встречаемся<br>на дорожке.</h2></div><p class="section-description">Найдите удобное время.<br>Нажмите на занятие, чтобы записаться.</p></div>
+      <div class="schedule-toolbar"><div class="segmented-control" role="tablist" aria-label="Расписание по возрасту"><button role="tab" id="tab-children" aria-selected="true" aria-controls="schedule-panel" data-audience="children" tabindex="0">Для детей</button><button role="tab" id="tab-adults" aria-selected="false" aria-controls="schedule-panel" data-audience="adults" tabindex="-1">Для взрослых</button></div><span class="schedule-timezone"><svg class="icon"><use href="#i-clock" /></svg>60 минут · Астана</span></div>
       <p id="schedule-status" class="schedule-status" role="status" hidden></p>
       <div id="schedule-panel" class="schedule-grid" role="tabpanel" aria-labelledby="tab-children"></div>
+      <p class="schedule-footnote"><svg class="icon"><use href="#i-lock" /></svg>В группы «Мастер» набор закрыт. Время занятия подтвердит тренер.</p>
     </section>
 
 </main>
 
-  <footer class="site-footer" id="contacts"><div class="shell"><div class="footer-top"><a class="brand" href="#"><span class="brand-mark"><svg class="icon"><use href="#i-wave" /></svg></span><strong data-setting="brandName">В потоке</strong></a><span class="footer-location" data-setting="location">Астана</span><a class="footer-phone" data-phone href="tel:+77076204904" data-setting="phone">+7 707 620 4904</a></div><p id="contact-note" class="contact-note" hidden></p><div class="footer-bottom"><span>© <span id="year">2026</span> <span data-setting="coachName">Медхат Даиров</span></span><div><a data-instagram href="https://www.instagram.com/p/DPTBBraiJYW/" target="_blank" rel="noopener noreferrer">Instagram <svg class="icon"><use href="#i-diagonal" /></svg></a><a data-whatsapp href="https://wa.me/77076204904" target="_blank" rel="noopener noreferrer">WhatsApp <svg class="icon"><use href="#i-diagonal" /></svg></a><button class="privacy-link" data-privacy>Обработка данных</button></div></div></div></footer>
+  <footer class="site-footer" id="contacts"><div class="shell">
+    <div class="footer-invitation"><div><p class="section-kicker">ТВОЙ ПЕРВЫЙ ШАГ</p><h2>Увидимся в воде.</h2></div><button class="button button-dark" data-book>Записаться на тренировку <svg class="icon"><use href="#i-diagonal" /></svg></button></div>
+    <div class="footer-top"><a class="brand" href="#" aria-label="Spartan Swim — на главную"><span class="brand-mark"><svg class="icon"><use href="#i-spartan" /></svg></span><span class="brand-text"><strong>SPARTAN</strong><span>SWIM</span></span></a><span class="footer-location"><svg class="icon"><use href="#i-pin" /></svg><span data-setting="location">Астана</span></span><a class="footer-phone" data-phone href="tel:+77076204904" data-setting="phone">+7 707 620 4904</a></div>
+    <p id="contact-note" class="contact-note" hidden></p><div class="footer-bottom"><span>© <span id="year">2026</span> <span data-setting="brandName">SPARTAN SWIM</span></span><div><a data-instagram href="https://www.instagram.com/p/DPTBBraiJYW/" target="_blank" rel="noopener noreferrer">Instagram <svg class="icon"><use href="#i-diagonal" /></svg></a><a data-whatsapp href="https://wa.me/77076204904" target="_blank" rel="noopener noreferrer">WhatsApp <svg class="icon"><use href="#i-diagonal" /></svg></a><button class="privacy-link" data-privacy>Обработка данных</button></div></div>
+  </div></footer>
 
-  <dialog id="booking-dialog" class="booking-dialog" aria-labelledby="booking-title"><button class="dialog-close" data-close aria-label="Закрыть форму"><svg class="icon"><use href="#i-close" /></svg></button><div id="booking-content"><h2 id="booking-title">Запись на занятие</h2><p class="dialog-description">Тренер свяжется с вами и подтвердит время.</p><form id="booking-form">
+  <dialog id="booking-dialog" class="booking-dialog" aria-labelledby="booking-title"><button class="dialog-close" data-close aria-label="Закрыть форму"><svg class="icon"><use href="#i-close" /></svg></button><div id="booking-content"><p class="section-kicker">SPARTAN SWIM</p><h2 id="booking-title">Твоя первая тренировка</h2><p class="dialog-description">Оставьте заявку. Мы подтвердим группу, тренера и время.</p><form id="booking-form">
     <fieldset class="form-audience"><legend class="sr-only">Для кого занятие?</legend><label><input type="radio" name="audience" value="children" checked /><span>Для ребёнка</span></label><label><input type="radio" name="audience" value="adults" /><span>Для меня</span></label></fieldset>
     <div class="form-field"><label for="booking-name" id="name-label">Имя родителя</label><input id="booking-name" name="name" type="text" autocomplete="name" placeholder="Как к вам обращаться" maxlength="100" minlength="2" required /></div>
     <div class="form-field"><label for="booking-phone">Телефон для связи</label><input id="booking-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+7 (___) ___-__-__" maxlength="25" required /></div>
     <div class="form-row" id="child-fields"><div class="form-field"><label for="participant-name">Имя ребёнка</label><input id="participant-name" name="participantName" autocomplete="off" type="text" placeholder="Имя" maxlength="100" minlength="2" required /></div><div class="form-field age-field"><label for="participant-age">Возраст</label><input id="participant-age" name="age" type="number" inputmode="numeric" placeholder="Лет" min="1" max="17" step="1" required /></div></div>
+    <div class="form-field"><label for="booking-coach">Предпочитаемый тренер</label><div class="select-wrap"><select id="booking-coach" name="coachId"><option value="">Помогите выбрать</option></select><svg class="icon"><use href="#i-chevron" /></svg></div></div>
     <div class="form-field"><label for="booking-experience">Опыт плавания</label><div class="select-wrap"><select id="booking-experience" name="experience" required><option value="beginner">Начинаем с нуля</option><option value="confident">Уже есть опыт</option></select><svg class="icon"><use href="#i-chevron" /></svg></div></div>
     <div class="form-field"><label for="booking-group">Удобная группа</label><div class="select-wrap"><select id="booking-group" name="groupId" required></select><svg class="icon"><use href="#i-chevron" /></svg></div></div>
     <div class="honeypot" aria-hidden="true"><label for="booking-website">Не заполняйте это поле</label><input id="booking-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
-    <label class="consent"><input type="checkbox" name="consent" required /><span>Согласен на передачу данных тренеру для связи по заявке. <button type="button" data-privacy>Подробнее</button></span></label>
+    <label class="consent"><input type="checkbox" name="consent" required /><span>Согласен на передачу данных команде Spartan Swim для связи по заявке. <button type="button" data-privacy>Подробнее</button></span></label>
     <p id="form-message" class="form-message" role="status" aria-live="polite" hidden></p>
     <button class="button button-dark form-submit" id="booking-submit" type="submit">Отправить заявку <svg class="icon"><use href="#i-diagonal" /></svg></button>
     <a class="form-whatsapp" id="form-whatsapp" data-whatsapp href="https://wa.me/77076204904" target="_blank" rel="noopener noreferrer"><svg class="icon"><use href="#i-chat" /></svg> Или написать в WhatsApp</a>
-  </form></div><div id="booking-success" class="booking-success" hidden><span class="success-icon"><svg class="icon"><use href="#i-check" /></svg></span><span class="eyebrow">ПЕРВЫЙ ШАГ СДЕЛАН</span><h2>До встречи <em>в воде!</em></h2><p>Заявка сохранена. Медхат свяжется с вами и подтвердит время.</p><button class="button button-dark" data-close>Отлично <svg class="icon"><use href="#i-check" /></svg></button></div></dialog>
+  </form></div><div id="booking-success" class="booking-success" hidden><span class="success-icon"><svg class="icon"><use href="#i-check" /></svg></span><span class="eyebrow">ПЕРВЫЙ ШАГ СДЕЛАН</span><h2>До встречи <em>в воде!</em></h2><p>Заявка сохранена. Команда Spartan Swim свяжется с вами и подтвердит время и тренера.</p><button class="button button-dark" data-close>Отлично <svg class="icon"><use href="#i-check" /></svg></button></div></dialog>
 
-  <dialog id="privacy-dialog" class="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close" data-close aria-label="Закрыть"><svg class="icon"><use href="#i-close" /></svg></button><h2 id="privacy-title">Данные в заявке</h2><p>Форма передаёт Медхату Даирову ваше имя и телефон, выбранную группу и опыт плавания. При записи ребёнка также передаются его имя и возраст.</p><p>Эти сведения нужны для связи и согласования занятия. Заявки сохраняются в закрытой Google Таблице тренера; уведомление с деталями поступает в его Telegram.</p><p>Уточнить сведения или попросить удалить заявку можно по телефону <a data-phone href="tel:+77076204904" data-setting="phone">+7 707 620 4904</a>.</p><p class="privacy-fallback">Если вы выбираете WhatsApp, текст заявки открывается в приложении. Вы отправляете его самостоятельно.</p><button class="button button-dark" data-close>Понятно</button></dialog>
+  <dialog id="privacy-dialog" class="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close" data-close aria-label="Закрыть"><svg class="icon"><use href="#i-close" /></svg></button><h2 id="privacy-title">Данные в заявке</h2><p>Форма передаёт команде Spartan Swim ваше имя и телефон, выбранную группу, предпочтение по тренеру и опыт плавания. При записи ребёнка также передаются его имя и возраст.</p><p>Эти сведения нужны для связи и согласования занятия. Заявки сохраняются в закрытой Google Таблице; уведомление с деталями поступает в Telegram команды.</p><p>Уточнить сведения или попросить удалить заявку можно по телефону <a data-phone href="tel:+77076204904" data-setting="phone">+7 707 620 4904</a>.</p><p class="privacy-fallback">Если вы выбираете WhatsApp, текст заявки открывается в приложении. Вы отправляете его самостоятельно.</p><button class="button button-dark" data-close>Понятно</button></dialog>
   <noscript><div class="noscript-message">Для расписания и формы включите JavaScript. Записаться также можно по телефону <a href="tel:+77076204904">+7 707 620 4904</a>.</div></noscript>
 </body>
 </html>

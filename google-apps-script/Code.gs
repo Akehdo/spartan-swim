@@ -1,10 +1,11 @@
 /**
- * «В потоке»: Google Sheets + Telegram, без отдельной базы данных.
+ * Spartan Swim: Google Sheets + Telegram, без отдельной базы данных.
  * Установка: docs/INTEGRATION.md. Никогда не помещайте токен бота в сайт.
  */
-var SHEETS = { settings: 'Настройки', schedule: 'Расписание', registrations: 'Заявки' };
+var SHEETS = { settings: 'Настройки', schedule: 'Расписание', coaches: 'Тренеры', registrations: 'Заявки' };
 var SCHEDULE_HEADERS = ['id', 'audience', 'days', 'start', 'end', 'level', 'active'];
-var REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'name', 'phone', 'participantName', 'age', 'experience', 'groupId', 'groupDescription', 'consent', 'telegramStatus', 'telegramAttempts'];
+var COACH_HEADERS = ['id', 'name', 'role', 'image', 'senior', 'active'];
+var REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'name', 'phone', 'participantName', 'age', 'experience', 'groupId', 'groupDescription', 'consent', 'telegramStatus', 'telegramAttempts', 'coachId', 'coachName'];
 var PUBLIC_SETTING_KEYS = ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'childrenTitle', 'childrenDescription', 'adultsTitle', 'adultsDescription', 'coachIntro', 'location', 'phone', 'whatsapp', 'instagram', 'childrenPrice', 'adultsPrice', 'contactNote'];
 var VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
@@ -14,14 +15,14 @@ function setup() {
   if (!spreadsheet) throw new Error('Откройте Apps Script через Расширения → Apps Script в Google Таблице.');
   PropertiesService.getScriptProperties().setProperty('SPREADSHEET_ID', spreadsheet.getId());
   var defaultSettings = [
-    ['brandName', 'В потоке'], ['coachName', 'Медхат Даиров'],
-    ['heroTitle', 'Плавать легче, чем кажется.'],
-    ['heroDescription', 'Плавание для детей и взрослых в Астане.'],
+    ['brandName', 'SPARTAN SWIM'], ['coachName', 'Медхат Даиров'],
+    ['heroTitle', 'Характер рождается в воде.'],
+    ['heroDescription', 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.'],
     ['childrenTitle', 'Уверенность в воде.'],
     ['childrenDescription', 'Знакомимся с водой, учимся дышать и осваиваем технику.'],
     ['adultsTitle', 'Свобода движения.'],
     ['adultsDescription', 'Учимся плавать с нуля или совершенствуем технику.'],
-    ['coachIntro', 'Тренер по плаванию. Помогу плавать увереннее.'],
+    ['coachIntro', 'Старший тренер Spartan Swim. Поможет подобрать тренера и группу по вашему уровню.'],
     ['location', 'Астана'], ['phone', '+7 707 620 4904'], ['whatsapp', '77076204904'],
     ['instagram', 'https://www.instagram.com/p/DPTBBraiJYW/'],
     ['childrenPrice', ''], ['adultsPrice', ''], ['contactNote', '']
@@ -32,12 +33,17 @@ function setup() {
     // Новые редактируемые тексты добавляются и в ранее настроенную таблицу.
     if (existingKeys.indexOf(row[0]) === -1) settings.appendRow(row);
   });
+  migrateSettings_(settings, defaultSettings);
   var schedule = ensureSheet_(spreadsheet, SHEETS.schedule, SCHEDULE_HEADERS, defaultSchedule_().map(function (group) {
     return [group.id, group.audience, group.days.join(','), group.start, group.end, group.level, true];
   }));
   // Храним часы текстом: Google Таблицы не должны превращать их в даты.
   schedule.getRange(2, 4, Math.max(schedule.getLastRow() - 1, 1), 2).setNumberFormat('@');
-  ensureSheet_(spreadsheet, SHEETS.registrations, REGISTRATION_HEADERS, []);
+  ensureSheet_(spreadsheet, SHEETS.coaches, COACH_HEADERS, defaultCoaches_().map(function (coach) {
+    return [coach.id, coach.name, coach.role, coach.image, coach.senior, coach.active];
+  }));
+  var registrations = ensureSheet_(spreadsheet, SHEETS.registrations, REGISTRATION_HEADERS, []);
+  ensureRegistrationHeaders_(registrations);
   installNotificationRetry();
 }
 
@@ -55,7 +61,7 @@ function doGet(event) {
       return json_({ ok: false, error: { code: 'NOT_FOUND', message: 'Неизвестный запрос.' } });
     }
     var spreadsheet = getSpreadsheet_();
-    return json_({ ok: true, settings: readSettings_(spreadsheet), schedule: readSchedule_(spreadsheet) });
+    return json_({ ok: true, settings: readSettings_(spreadsheet), schedule: readSchedule_(spreadsheet), coaches: readCoaches_(spreadsheet) });
   } catch (error) {
     return errorResponse_(error);
   }
@@ -92,6 +98,8 @@ function register_(input) {
     var group = readSchedule_(spreadsheet).filter(function (item) { return item.id === data.groupId; })[0];
     if (!group || !group.active) fail_('GROUP_UNAVAILABLE', 'Эта группа больше недоступна. Выберите другое время.');
     if (group.level === 'master') fail_('MASTER_CLOSED', 'В группу «Мастер» нет набора новичков. Выберите другую группу.');
+    var coach = data.coachId ? readCoaches_(spreadsheet).filter(function (item) { return item.id === data.coachId && item.active; })[0] : null;
+    if (data.coachId && !coach) fail_('COACH_UNAVAILABLE', 'Этот тренер сейчас недоступен для записи. Выберите другого тренера или оставьте выбор за нами.');
     if (group.audience === 'children' && (!data.participantName || data.age === '')) {
       fail_('CHILD_DETAILS_REQUIRED', 'Укажите имя и возраст ребёнка.');
     }
@@ -104,7 +112,8 @@ function register_(input) {
     sheet.appendRow([
       new Date().toISOString(), data.requestId, registrationId,
       safeCell_(data.name), safeCell_(data.phone), safeCell_(data.participantName), data.age,
-      data.experience, safeCell_(group.id), description, true, 'pending', 0
+      data.experience, safeCell_(group.id), description, true, 'pending', 0,
+      coach ? safeCell_(coach.id) : '', coach ? safeCell_(coach.name) : ''
     ]);
     SpreadsheetApp.flush();
     rowNumber = sheet.getLastRow();
@@ -124,6 +133,8 @@ function validateRegistration_(input) {
   var participantName = cleanText_(input.participantName || '', 100);
   var groupId = cleanText_(input.groupId, 100);
   var requestId = cleanText_(input.requestId, 80);
+  var coachId = input.coachId === undefined || input.coachId === null ? '' : cleanText_(input.coachId, 80);
+  if (coachId && !/^[a-zA-Z0-9_-]{1,80}$/.test(coachId)) fail_('INVALID_COACH', 'Выберите тренера из списка.');
   if (name.length < 2) fail_('INVALID_NAME', 'Укажите ваше имя.');
   if (!/^[+\d\s()\-]+$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
     fail_('INVALID_PHONE', 'Проверьте номер телефона: от 10 до 15 цифр.');
@@ -132,7 +143,57 @@ function validateRegistration_(input) {
   if (input.experience !== 'beginner' && input.experience !== 'confident') fail_('INVALID_EXPERIENCE', 'Выберите уровень подготовки.');
   var age = input.age === '' || input.age === undefined || input.age === null ? '' : Number(input.age);
   if (age !== '' && (!Number.isInteger(age) || age < 1 || age > 100)) fail_('INVALID_AGE', 'Проверьте возраст участника.');
-  return { name: name, phone: phone, participantName: participantName, groupId: groupId, requestId: requestId, experience: input.experience, age: age };
+  return { name: name, phone: phone, participantName: participantName, groupId: groupId, requestId: requestId, experience: input.experience, age: age, coachId: coachId };
+}
+
+function defaultCoaches_() {
+  return [
+    { id: 'medhat', name: 'Медхат Даиров', role: 'Старший тренер', image: '/images/medhat-coach.jpg', senior: true, active: true },
+    { id: 'erik', name: 'Рускулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
+    { id: 'konstantin', name: 'Романенко Константин Максимович', role: 'Тренер по плаванию', image: '/images/coach-konstantin.png', senior: false, active: true },
+    { id: 'andrey', name: 'Беляков Андрей Андреевич', role: 'Тренер по плаванию', image: '/images/coach-andrey.png', senior: false, active: true }
+  ];
+}
+
+function readCoaches_(spreadsheet) {
+  var sheet = spreadsheet.getSheetByName(SHEETS.coaches);
+  // При обновлении кода старые заявки работают и до первого запуска setup().
+  if (!sheet) return defaultCoaches_();
+  if (sheet.getLastRow() < 2) return [];
+  var seen = {};
+  return sheet.getRange(2, 1, sheet.getLastRow() - 1, COACH_HEADERS.length).getDisplayValues().map(function (row) {
+    return { id: String(row[0]).trim(), name: String(row[1]).trim(), role: String(row[2]).trim(), image: String(row[3]).trim(),
+      senior: /^(true|1|да)$/i.test(String(row[4]).trim()), active: /^(true|1|да)$/i.test(String(row[5]).trim()) };
+  }).filter(function (coach) {
+    var valid = /^[a-zA-Z0-9_-]{1,80}$/.test(coach.id) && !seen[coach.id] && coach.name.length >= 2 && coach.name.length <= 100 &&
+      coach.role.length > 0 && coach.role.length <= 100 && coach.image.length <= 2000 &&
+      (/^\/images\/[a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|avif)$/i.test(coach.image) || /^https:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?(?::[0-9]{1,5})?(?:[/?#][^\s]*)?$/.test(coach.image));
+    if (valid) seen[coach.id] = true;
+    return Boolean(valid);
+  });
+}
+
+/** Меняем только прежние исходные тексты; собственные правки менеджера сохраняются. */
+function migrateSettings_(sheet, defaults) {
+  var legacy = { brandName: 'В потоке', heroTitle: 'Плавать легче, чем кажется.',
+    heroDescription: 'Плавание для детей и взрослых в Астане.', coachIntro: 'Тренер по плаванию. Помогу плавать увереннее.' };
+  var next = {};
+  defaults.forEach(function (row) { next[row[0]] = row[1]; });
+  var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getDisplayValues();
+  rows.forEach(function (row, index) {
+    if (Object.prototype.hasOwnProperty.call(legacy, row[0]) && row[1] === legacy[row[0]]) sheet.getRange(index + 2, 2).setValue(next[row[0]]);
+  });
+}
+
+/** Добавляем два столбца к прежним 13, не затрагивая сохранённые заявки. */
+function ensureRegistrationHeaders_(sheet) {
+  var headers = sheet.getRange(1, 1, 1, REGISTRATION_HEADERS.length).getDisplayValues()[0];
+  for (var index = 0; index < REGISTRATION_HEADERS.length; index++) {
+    if (headers[index] && headers[index] !== REGISTRATION_HEADERS[index]) {
+      throw new Error('Лист «Заявки»: столбец ' + (index + 1) + ' должен называться «' + REGISTRATION_HEADERS[index] + '». Сохраните свои дополнительные столбцы правее coachName и повторите setup().');
+    }
+    if (!headers[index]) sheet.getRange(1, index + 1).setValue(REGISTRATION_HEADERS[index]);
+  }
 }
 
 function readSettings_(spreadsheet) {
@@ -252,13 +313,14 @@ function sendNotificationLocked_(sheet, rowNumber) {
     }
     if (attempts >= 5) return false;
     sheet.getRange(rowNumber, 13).setValue(attempts + 1);
-    var text = '🏊 Новая заявка · В потоке\n\n' +
+    var text = '🏊 Новая заявка · SPARTAN SWIM\n\n' +
       'Контакт: ' + plainCell_(row[3]) + '\n' +
       'Телефон: ' + plainCell_(row[4]) + '\n' +
       'WhatsApp: https://wa.me/' + plainCell_(row[4]).replace(/\D/g, '') + '\n' +
       (row[5] ? 'Участник: ' + plainCell_(row[5]) + (row[6] !== '' ? ' · ' + row[6] + ' лет' : '') + '\n' : '') +
       'Уровень: ' + (row[7] === 'beginner' ? 'Начинающий' : 'Уверенно держится на воде') + '\n' +
-      'Группа: ' + row[9];
+      'Группа: ' + row[9] + '\n' +
+      'Тренер: ' + (row[14] ? plainCell_(row[14]) + ' (предпочтение)' : 'Помочь с выбором');
     var sent = false;
     try {
       var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {

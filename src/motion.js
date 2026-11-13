@@ -3,10 +3,10 @@ export function initMotion() {
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   if (reducedMotion.matches || !('IntersectionObserver' in window)) return { refresh() {} };
 
-  const headingSelector = '.hero h1, .section-heading h2, .coach-copy h2';
+  const headingSelector = '.hero h1, .section-heading h2, .coach-copy h3';
   const unitSelector = [
     '.hero-description', '.hero-actions', '.hero-visual',
-    '.coach-portrait-wrap', '.coach-intro', '.coach-copy>.button',
+    '.coach-portrait-wrap', '.coach-intro', '.coach-copy>.button', '.coach-card',
     '.schedule-toolbar', '.schedule-card', '.schedule-footnote',
     '.footer-top',
   ].join(', ');

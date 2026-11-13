@@ -1,15 +1,46 @@
 export const defaultSettings = {
-  brandName: 'В потоке',
+  brandName: 'SPARTAN SWIM',
   coachName: 'Медхат Даиров',
-  heroTitle: 'Плавать легче, чем кажется.',
-  heroDescription: 'Плавание для детей и взрослых в Астане.',
+  heroTitle: 'Характер рождается в воде.',
+  heroDescription: 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.',
   location: 'Астана',
   phone: '+7 707 620 4904',
   whatsapp: '77076204904',
   instagram: 'https://www.instagram.com/p/DPTBBraiJYW/',
   contactNote: '',
-  coachIntro: 'Тренер по плаванию. Помогу плавать увереннее.',
+  coachIntro: 'Старший тренер Spartan Swim. Поможет подобрать тренера и группу по вашему уровню.',
 };
+
+export const defaultCoaches = [
+  { id: 'medhat', name: 'Медхат Даиров', role: 'Старший тренер', image: '/images/medhat-coach.jpg', senior: true, active: true },
+  { id: 'erik', name: 'Рускулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
+  { id: 'konstantin', name: 'Романенко Константин Максимович', role: 'Тренер по плаванию', image: '/images/coach-konstantin.png', senior: false, active: true },
+  { id: 'andrey', name: 'Беляков Андрей Андреевич', role: 'Тренер по плаванию', image: '/images/coach-andrey.png', senior: false, active: true },
+];
+
+export function normalizeCoaches(input) {
+  if (!Array.isArray(input)) throw new Error('Некорректный список тренеров');
+  const ids = new Set();
+  return input.map(coach => {
+    if (!coach || typeof coach.id !== 'string' || !/^[a-zA-Z0-9_-]{1,80}$/.test(coach.id) || ids.has(coach.id) ||
+      typeof coach.name !== 'string' || coach.name.trim().length < 2 || coach.name.length > 150 ||
+      typeof coach.role !== 'string' || !coach.role.trim() || coach.role.length > 150 ||
+      typeof coach.senior !== 'boolean' || typeof coach.active !== 'boolean' || !validCoachImage(coach.image)) {
+      throw new Error('Некорректный список тренеров');
+    }
+    ids.add(coach.id);
+    return { ...coach, name: coach.name.trim(), role: coach.role.trim() };
+  });
+}
+
+function validCoachImage(value) {
+  if (typeof value !== 'string' || value.length > 2000) return false;
+  if (/^\/images\/[a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|avif)$/i.test(value)) return true;
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && !url.username && !url.password;
+  } catch { return false; }
+}
 
 function groups(audience, key, days, times) {
   return times.map(([start, level = 'all']) => ({

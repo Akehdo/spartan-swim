@@ -118,7 +118,10 @@ test('public bootstrap exposes exact 15 groups and safe settings, never applicat
   assert.equal(body.settings.phone, '+7 707 620 4904');
   assert.equal(body.schedule.filter(group => group.audience === 'children').length, 8);
   assert.equal(body.schedule.filter(group => group.audience === 'adults').length, 7);
-  assert.deepEqual(Object.keys(body).sort(), ['ok', 'schedule', 'settings']);
+  assert.equal(body.settings.brandName, 'SPARTAN SWIM');
+  assert.equal(body.coaches.length, 4);
+  assert.deepEqual(body.coaches.filter(coach => coach.senior).map(coach => coach.id), ['medhat']);
+  assert.deepEqual(Object.keys(body).sort(), ['coaches', 'ok', 'schedule', 'settings']);
   assert.doesNotMatch(JSON.stringify(body), /test-private-token|Анна|000 1234/);
 });
 
@@ -243,7 +246,7 @@ test('setup adds missing editable text settings while preserving existing traine
   h.context.setup();
   const result = h.get().settings;
   assert.equal(result.childrenTitle, 'Заголовок от тренера');
-  assert.match(result.coachIntro, /Помогу плавать увереннее\./);
+  assert.match(result.coachIntro, /Старший тренер Spartan Swim\./);
   assert.equal(result.adultsTitle, 'Свобода движения.');
   assert.equal(settings.rows.filter(row => row[0] === 'coachIntro').length, 1);
 });
@@ -264,4 +267,87 @@ test('repeated different requests from one phone are limited, duplicate retry is
   assert.equal(h.post(registration({ requestId: 'request-number-6' })).error.code, 'RATE_LIMIT');
   assert.equal(h.post(registration({ requestId: 'request-number-0' })).duplicate, true);
   assert.equal(h.sheets.get('Заявки').rows.length, 7);
+});
+
+test('selected coach is resolved from the current sheet and saved with the chosen schedule in Telegram', () => {
+  const h = harness();
+  h.sheets.get('Тренеры').rows.find(row => row[0] === 'erik')[1] = 'Эрик — имя от менеджера';
+  const result = h.post(registration({ coachId: 'erik', coachName: 'Поддельное имя' }));
+  assert.equal(result.ok, true);
+  const row = h.sheets.get('Заявки').rows[1];
+  assert.equal(row[8], 'children-mwf-0800');
+  assert.match(row[9], /Дети · ПН СР ПТ · 08:00–09:00/);
+  assert.equal(row[13], 'erik');
+  assert.equal(row[14], 'Эрик — имя от менеджера');
+  assert.match(h.messages[0].data.text, /SPARTAN SWIM/);
+  assert.match(h.messages[0].data.text, /Тренер: Эрик — имя от менеджера \(предпочтение\)/);
+  assert.doesNotMatch(h.messages[0].data.text, /Поддельное имя/);
+  assert.equal(h.post(registration({ coachId: 'erik' })).duplicate, true);
+  assert.equal(h.messages.length, 1);
+});
+
+test('unknown, inactive, and invalid coaches cannot be booked by a forged client', () => {
+  for (const coachId of ['unknown-coach', '../erik', 12]) {
+    const h = harness();
+    assert.equal(h.post(registration({ coachId })).ok, false);
+    assert.equal(h.sheets.get('Заявки').rows.length, 1);
+    assert.equal(h.messages.length, 0);
+  }
+  const h = harness();
+  h.sheets.get('Тренеры').rows.find(row => row[0] === 'erik')[5] = false;
+  assert.equal(h.post(registration({ coachId: 'erik' })).error.code, 'COACH_UNAVAILABLE');
+  assert.equal(h.sheets.get('Заявки').rows.length, 1);
+  assert.equal(h.messages.length, 0);
+  assert.equal(h.post(registration()).ok, true);
+  assert.match(h.messages[0].data.text, /Тренер: Помочь с выбором/);
+});
+
+test('coach sheet supports manager edits and suppresses ambiguous or unsafe image entries', () => {
+  const h = harness();
+  const coaches = h.sheets.get('Тренеры');
+  coaches.rows.find(row => row[0] === 'konstantin')[2] = 'Тренер детских групп';
+  coaches.rows.push([...coaches.rows[1]]);
+  coaches.rows.push(['unsafe', 'Имя тренера', 'Тренер', 'javascript:alert(1)', false, true]);
+  coaches.rows.push(['credentials', 'Имя тренера', 'Тренер', 'https://user:password@example.com/image.jpg', false, true]);
+  coaches.rows.push(['malformed', 'Имя тренера', 'Тренер', 'https:///', false, true]);
+  assert.equal(h.get().coaches.length, 4);
+  assert.equal(h.get().coaches.find(coach => coach.id === 'konstantin').role, 'Тренер детских групп');
+  h.context.setup();
+  assert.equal(h.get().coaches.find(coach => coach.id === 'konstantin').role, 'Тренер детских групп');
+  assert.equal(coaches.rows.filter(row => row[0] === 'konstantin').length, 1);
+  coaches.rows = [coaches.rows[0]];
+  assert.deepEqual(h.get().coaches, []);
+});
+
+test('upgrading the old sheet preserves applications and edits while adding coach columns and migrating only legacy defaults', () => {
+  const h = harness();
+  h.post(registration());
+  const applications = h.sheets.get('Заявки');
+  applications.rows = applications.rows.map(row => row.slice(0, 13));
+  const oldApplication = [...applications.rows[1]];
+  h.sheets.delete('Тренеры');
+  const settings = h.sheets.get('Настройки');
+  settings.rows.find(row => row[0] === 'brandName')[1] = 'В потоке';
+  settings.rows.find(row => row[0] === 'heroTitle')[1] = 'Плавать легче, чем кажется.';
+  settings.rows.find(row => row[0] === 'heroDescription')[1] = 'Текст менеджера';
+  h.context.setup();
+  assert.deepEqual(applications.rows[0].slice(13), ['coachId', 'coachName']);
+  assert.deepEqual(applications.rows[1], oldApplication);
+  assert.equal(h.get().settings.brandName, 'SPARTAN SWIM');
+  assert.equal(h.get().settings.heroTitle, 'Характер рождается в воде.');
+  assert.equal(h.get().settings.heroDescription, 'Текст менеджера');
+  assert.equal(h.get().coaches.length, 4);
+  assert.equal(h.post(registration()).duplicate, true);
+  assert.equal(h.messages.length, 1);
+  assert.equal(h.triggers.length, 1);
+});
+
+test('setup does not overwrite a manager column occupying the new coach columns', () => {
+  const h = harness();
+  const sheet = h.sheets.get('Заявки');
+  sheet.rows[0][13] = 'Заметки менеджера';
+  sheet.rows.push(Array.from({ length: 14 }, (_, index) => index === 13 ? 'Сохранить эту заметку' : ''));
+  assert.throws(() => h.context.setup(), /Сохраните свои дополнительные столбцы/);
+  assert.equal(sheet.rows[0][13], 'Заметки менеджера');
+  assert.equal(sheet.rows[1][13], 'Сохранить эту заметку');
 });
