@@ -120,6 +120,7 @@ test('public bootstrap exposes exact 15 groups and safe settings, never applicat
   assert.equal(body.schedule.filter(group => group.audience === 'adults').length, 7);
   assert.equal(body.settings.brandName, 'SPARTAN SWIM');
   assert.equal(body.coaches.length, 4);
+  assert.equal(body.coaches.find(coach => coach.id === 'erik').name, 'Раскулов Эрик Рустамович');
   assert.deepEqual(body.coaches.filter(coach => coach.senior).map(coach => coach.id), ['medhat']);
   assert.deepEqual(Object.keys(body).sort(), ['coaches', 'ok', 'schedule', 'settings']);
   assert.doesNotMatch(JSON.stringify(body), /test-private-token|Анна|000 1234/);
@@ -350,4 +351,28 @@ test('setup does not overwrite a manager column occupying the new coach columns'
   assert.throws(() => h.context.setup(), /Сохраните свои дополнительные столбцы/);
   assert.equal(sheet.rows[0][13], 'Заметки менеджера');
   assert.equal(sheet.rows[1][13], 'Сохранить эту заметку');
+});
+
+test('setup corrects only the old Erik surname and preserves manager edits and past bookings', () => {
+  const h = harness();
+  const coaches = h.sheets.get('Тренеры');
+  const erik = coaches.rows.find(row => row[0] === 'erik');
+  erik[1] = 'Рускулов Эрик Рустамович';
+  assert.equal(h.post(registration({ coachId: 'erik' })).ok, true);
+  const oldBooking = [...h.sheets.get('Заявки').rows[1]];
+  erik[2] = 'Роль от менеджера';
+  erik[3] = 'https://example.com/erik.jpg';
+  erik[5] = false;
+  const other = coaches.rows.find(row => row[0] === 'konstantin');
+  other[1] = 'Рускулов Эрик Рустамович';
+  const otherBefore = [...other];
+  h.context.setup();
+  h.context.setup();
+  assert.deepEqual(erik, ['erik', 'Раскулов Эрик Рустамович', 'Роль от менеджера', 'https://example.com/erik.jpg', false, false]);
+  assert.deepEqual(other, otherBefore);
+  assert.deepEqual(h.sheets.get('Заявки').rows[1], oldBooking);
+  erik[1] = 'Эрик — имя от менеджера';
+  h.context.setup();
+  assert.equal(erik[1], 'Эрик — имя от менеджера');
+  assert.equal(h.triggers.length, 1);
 });

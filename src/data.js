@@ -13,7 +13,7 @@ export const defaultSettings = {
 
 export const defaultCoaches = [
   { id: 'medhat', name: 'Медхат Даиров', role: 'Старший тренер', image: '/images/medhat-coach.jpg', senior: true, active: true },
-  { id: 'erik', name: 'Рускулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
+  { id: 'erik', name: 'Раскулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
   { id: 'konstantin', name: 'Романенко Константин Максимович', role: 'Тренер по плаванию', image: '/images/coach-konstantin.png', senior: false, active: true },
   { id: 'andrey', name: 'Беляков Андрей Андреевич', role: 'Тренер по плаванию', image: '/images/coach-andrey.png', senior: false, active: true },
 ];

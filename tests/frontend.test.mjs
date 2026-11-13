@@ -36,6 +36,7 @@ test('Coach data preserves the supplied team and accepts the manager API contrac
   assert.deepEqual(normalizeCoaches(defaultCoaches), defaultCoaches);
   assert.equal(defaultCoaches.filter(coach => coach.senior).length, 1);
   assert.equal(defaultCoaches.find(coach => coach.senior).name, 'Медхат Даиров');
+  assert.equal(defaultCoaches.find(coach => coach.id === 'erik').name, 'Раскулов Эрик Рустамович');
   assert.deepEqual(normalizeCoaches([]), []);
   assert.equal(normalizeCoaches([{ ...defaultCoaches[1], id: 'Coach_01', image: '/images/PORTRAIT.AVIF' }])[0].id, 'Coach_01');
   assert.equal(normalizeCoaches([{ ...defaultCoaches[1], image: 'https://example.com/portrait.jpg' }])[0].image, 'https://example.com/portrait.jpg');

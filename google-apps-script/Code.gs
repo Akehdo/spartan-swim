@@ -39,9 +39,10 @@ function setup() {
   }));
   // Храним часы текстом: Google Таблицы не должны превращать их в даты.
   schedule.getRange(2, 4, Math.max(schedule.getLastRow() - 1, 1), 2).setNumberFormat('@');
-  ensureSheet_(spreadsheet, SHEETS.coaches, COACH_HEADERS, defaultCoaches_().map(function (coach) {
+  var coaches = ensureSheet_(spreadsheet, SHEETS.coaches, COACH_HEADERS, defaultCoaches_().map(function (coach) {
     return [coach.id, coach.name, coach.role, coach.image, coach.senior, coach.active];
   }));
+  migrateCoachNames_(coaches);
   var registrations = ensureSheet_(spreadsheet, SHEETS.registrations, REGISTRATION_HEADERS, []);
   ensureRegistrationHeaders_(registrations);
   installNotificationRetry();
@@ -149,7 +150,7 @@ function validateRegistration_(input) {
 function defaultCoaches_() {
   return [
     { id: 'medhat', name: 'Медхат Даиров', role: 'Старший тренер', image: '/images/medhat-coach.jpg', senior: true, active: true },
-    { id: 'erik', name: 'Рускулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
+    { id: 'erik', name: 'Раскулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
     { id: 'konstantin', name: 'Романенко Константин Максимович', role: 'Тренер по плаванию', image: '/images/coach-konstantin.png', senior: false, active: true },
     { id: 'andrey', name: 'Беляков Андрей Андреевич', role: 'Тренер по плаванию', image: '/images/coach-andrey.png', senior: false, active: true }
   ];
@@ -170,6 +171,17 @@ function readCoaches_(spreadsheet) {
       (/^\/images\/[a-zA-Z0-9_-]+\.(?:png|jpe?g|webp|avif)$/i.test(coach.image) || /^https:\/\/[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?(?::[0-9]{1,5})?(?:[/?#][^\s]*)?$/.test(coach.image));
     if (valid) seen[coach.id] = true;
     return Boolean(valid);
+  });
+}
+
+/** Точечное исправление фамилии по уточнению пользователя; правки менеджера и заявки сохраняются. */
+function migrateCoachNames_(sheet) {
+  if (sheet.getLastRow() < 2) return;
+  var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getDisplayValues();
+  rows.forEach(function (row, index) {
+    if (String(row[0]).trim() === 'erik' && row[1] === 'Рускулов Эрик Рустамович') {
+      sheet.getRange(index + 2, 2).setValue('Раскулов Эрик Рустамович');
+    }
   });
 }
 
