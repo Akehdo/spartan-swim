@@ -2,7 +2,7 @@ export const defaultSettings = {
   brandName: 'SPARTAN SWIM',
   coachName: 'Медхат Даиров',
   heroTitle: 'Характер рождается в воде.',
-  heroDescription: 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.',
+  heroDescription: 'Школа плавания для детей и взрослых в Кокшетау. От первого вдоха до уверенной техники.',
   location: 'Астана',
   phone: '+7 707 620 4904',
   whatsapp: '77076204904',
