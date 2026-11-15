@@ -1,4 +1,4 @@
-import { defaultSettings, defaultSchedule, defaultCoaches, normalizeCoaches, dayLabels, dayNames, availableGroups, groupLabel, normalizeSchedule } from './data.js';
+import { defaultSettings, normalizeSettings, defaultSchedule, defaultCoaches, normalizeCoaches, dayLabels, dayNames, availableGroups, groupLabel, normalizeSchedule } from './data.js';
 import { apiRequest, validEndpoint } from './api.js';
 import { initMotion } from './motion.js';
 
@@ -37,17 +37,7 @@ function whatsappUrl(text) {
 }
 
 function applySettings(input) {
-  const safe = {};
-  for (const key of Object.keys(defaultSettings)) {
-    if (typeof input?.[key] === 'string' && input[key].length <= 2000) safe[key] = input[key];
-  }
-  // Keep old deployments compatible while their Sheet is being upgraded.
-  const legacy = { brandName: 'В потоке', heroTitle: 'Плавать легче, чем кажется.', heroDescription: 'Плавание для детей и взрослых в Астане.', coachIntro: 'Тренер по плаванию. Помогу плавать увереннее.' };
-  for (const [key, value] of Object.entries(legacy)) if (safe[key] === value) safe[key] = defaultSettings[key];
-  state.settings = { ...defaultSettings, ...safe };
-  for (const key of ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'phone', 'location']) {
-    if (!state.settings[key].trim()) state.settings[key] = defaultSettings[key];
-  }
+  state.settings = normalizeSettings(input);
   $$('[data-setting]').forEach(el => {
     if (state.settings[el.dataset.setting]) el.textContent = state.settings[el.dataset.setting];
   });
@@ -63,7 +53,7 @@ function applySettings(input) {
   const firstName = state.settings.coachName.trim().split(/\s+/)[0];
   $$('[data-coach-firstname]').forEach(el => { el.textContent = firstName; });
   const city = state.settings.location.trim();
-  $$('[data-city-case]').forEach(el => { el.textContent = city.toLowerCase() === 'астана' ? 'Астане' : city; });
+  $$('[data-city-case]').forEach(el => { el.textContent = city; });
   const digits = state.settings.phone.replace(/\D/g, '');
   $$('[data-phone]').forEach(el => { el.href = `tel:+${digits || '77076204904'}`; });
   $$('[data-whatsapp]').forEach(el => { el.href = whatsappUrl(); });

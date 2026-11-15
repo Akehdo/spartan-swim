@@ -17,13 +17,13 @@ function setup() {
   var defaultSettings = [
     ['brandName', 'SPARTAN SWIM'], ['coachName', 'Медхат Даиров'],
     ['heroTitle', 'Характер рождается в воде.'],
-    ['heroDescription', 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.'],
+    ['heroDescription', 'Школа плавания для детей и взрослых в Кокшетау. От первого вдоха до уверенной техники.'],
     ['childrenTitle', 'Уверенность в воде.'],
     ['childrenDescription', 'Знакомимся с водой, учимся дышать и осваиваем технику.'],
     ['adultsTitle', 'Свобода движения.'],
     ['adultsDescription', 'Учимся плавать с нуля или совершенствуем технику.'],
     ['coachIntro', 'Старший тренер Spartan Swim. Поможет подобрать тренера и группу по вашему уровню.'],
-    ['location', 'Астана'], ['phone', '+7 707 620 4904'], ['whatsapp', '77076204904'],
+    ['location', 'Кокшетау'], ['phone', '+7 707 620 4904'], ['whatsapp', '77076204904'],
     ['instagram', 'https://www.instagram.com/p/DPTBBraiJYW/'],
     ['childrenPrice', ''], ['adultsPrice', ''], ['contactNote', '']
   ];
@@ -187,13 +187,14 @@ function migrateCoachNames_(sheet) {
 
 /** Меняем только прежние исходные тексты; собственные правки менеджера сохраняются. */
 function migrateSettings_(sheet, defaults) {
-  var legacy = { brandName: 'В потоке', heroTitle: 'Плавать легче, чем кажется.',
-    heroDescription: 'Плавание для детей и взрослых в Астане.', coachIntro: 'Тренер по плаванию. Помогу плавать увереннее.' };
+  var legacy = { brandName: ['В потоке'], heroTitle: ['Плавать легче, чем кажется.'],
+    heroDescription: ['Плавание для детей и взрослых в Астане.', 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.'],
+    coachIntro: ['Тренер по плаванию. Помогу плавать увереннее.'], location: ['Астана'] };
   var next = {};
   defaults.forEach(function (row) { next[row[0]] = row[1]; });
   var rows = sheet.getRange(2, 1, sheet.getLastRow() - 1, 2).getDisplayValues();
   rows.forEach(function (row, index) {
-    if (Object.prototype.hasOwnProperty.call(legacy, row[0]) && row[1] === legacy[row[0]]) sheet.getRange(index + 2, 2).setValue(next[row[0]]);
+    if (Object.prototype.hasOwnProperty.call(legacy, row[0]) && legacy[row[0]].indexOf(row[1]) !== -1) sheet.getRange(index + 2, 2).setValue(next[row[0]]);
   });
 }
 

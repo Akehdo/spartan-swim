@@ -119,6 +119,8 @@ test('public bootstrap exposes exact 15 groups and safe settings, never applicat
   assert.equal(body.schedule.filter(group => group.audience === 'children').length, 8);
   assert.equal(body.schedule.filter(group => group.audience === 'adults').length, 7);
   assert.equal(body.settings.brandName, 'SPARTAN SWIM');
+  assert.equal(body.settings.location, 'Кокшетау');
+  assert.equal(body.settings.heroDescription, 'Школа плавания для детей и взрослых в Кокшетау. От первого вдоха до уверенной техники.');
   assert.equal(body.coaches.length, 4);
   assert.equal(body.coaches.find(coach => coach.id === 'erik').name, 'Раскулов Эрик Рустамович');
   assert.deepEqual(body.coaches.filter(coach => coach.senior).map(coach => coach.id), ['medhat']);
@@ -331,13 +333,28 @@ test('upgrading the old sheet preserves applications and edits while adding coac
   settings.rows.find(row => row[0] === 'brandName')[1] = 'В потоке';
   settings.rows.find(row => row[0] === 'heroTitle')[1] = 'Плавать легче, чем кажется.';
   settings.rows.find(row => row[0] === 'heroDescription')[1] = 'Текст менеджера';
+  settings.rows.find(row => row[0] === 'location')[1] = 'Петропавловск, адрес бассейна от менеджера';
   h.context.setup();
   assert.deepEqual(applications.rows[0].slice(13), ['coachId', 'coachName']);
   assert.deepEqual(applications.rows[1], oldApplication);
   assert.equal(h.get().settings.brandName, 'SPARTAN SWIM');
   assert.equal(h.get().settings.heroTitle, 'Характер рождается в воде.');
   assert.equal(h.get().settings.heroDescription, 'Текст менеджера');
+  assert.equal(h.get().settings.location, 'Петропавловск, адрес бассейна от менеджера');
   assert.equal(h.get().coaches.length, 4);
+  const scheduleBefore = JSON.stringify(h.sheets.get('Расписание').rows);
+  const coachesBefore = JSON.stringify(h.sheets.get('Тренеры').rows);
+  for (const previousDescription of ['Плавание для детей и взрослых в Астане.', 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.']) {
+    settings.rows.find(row => row[0] === 'location')[1] = 'Астана';
+    settings.rows.find(row => row[0] === 'heroDescription')[1] = previousDescription;
+    h.context.setup();
+    h.context.setup();
+    assert.equal(h.get().settings.location, 'Кокшетау');
+    assert.equal(h.get().settings.heroDescription, 'Школа плавания для детей и взрослых в Кокшетау. От первого вдоха до уверенной техники.');
+    assert.deepEqual(applications.rows[1], oldApplication);
+    assert.equal(JSON.stringify(h.sheets.get('Расписание').rows), scheduleBefore);
+    assert.equal(JSON.stringify(h.sheets.get('Тренеры').rows), coachesBefore);
+  }
   assert.equal(h.post(registration()).duplicate, true);
   assert.equal(h.messages.length, 1);
   assert.equal(h.triggers.length, 1);

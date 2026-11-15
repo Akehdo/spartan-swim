@@ -1,7 +1,25 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { defaultSchedule, defaultCoaches, normalizeCoaches, availableGroups, normalizeSchedule, groupLabel } from '../src/data.js';
+import { defaultSettings, normalizeSettings, defaultSchedule, defaultCoaches, normalizeCoaches, availableGroups, normalizeSchedule, groupLabel } from '../src/data.js';
 import { validEndpoint, apiRequest } from '../src/api.js';
+
+test('Settings use Kokshetau when missing or loaded from the previous Astana defaults', () => {
+  assert.equal(defaultSettings.location, 'Кокшетау');
+  for (const input of [undefined, null, {}, { location: '' }, { location: ' ' }, { location: 42 }, { location: 'Астана' }, { location: '  аСтАнА  ' }]) {
+    assert.equal(normalizeSettings(input).location, 'Кокшетау');
+  }
+  for (const heroDescription of ['Плавание для детей и взрослых в Астане.', 'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.']) {
+    const settings = normalizeSettings({ location: 'Астана', heroDescription });
+    assert.equal(settings.location, 'Кокшетау');
+    assert.equal(settings.heroDescription, defaultSettings.heroDescription);
+    assert.match(settings.heroDescription, /в Кокшетау/);
+  }
+  const custom = { location: 'Кокшетау, бассейн клуба', heroDescription: 'Наше расписание и занятия', coachName: 'Имя от менеджера', contactNote: '', ignored: 'not public' };
+  const settings = normalizeSettings(custom);
+  for (const key of ['location', 'heroDescription', 'coachName', 'contactNote']) assert.equal(settings[key], custom[key]);
+  assert.equal(normalizeSettings({ location: 'Алматы' }).location, 'Алматы');
+  assert.equal(Object.hasOwn(settings, 'ignored'), false);
+});
 
 test('All fifteen requested groups and their days match the brief', () => {
   assert.equal(defaultSchedule.length, 15);

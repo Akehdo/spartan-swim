@@ -11,6 +11,32 @@ export const defaultSettings = {
   coachIntro: 'Старший тренер Spartan Swim. Поможет подобрать тренера и группу по вашему уровню.',
 };
 
+export function normalizeSettings(input) {
+  const safe = {};
+  for (const key of Object.keys(defaultSettings)) {
+    if (typeof input?.[key] === 'string' && input[key].length <= 2000) safe[key] = input[key];
+  }
+  // Migrate former defaults without replacing the manager's custom content.
+  const legacy = {
+    brandName: ['В потоке'],
+    heroTitle: ['Плавать легче, чем кажется.'],
+    heroDescription: [
+      'Плавание для детей и взрослых в Астане.',
+      'Школа плавания для детей и взрослых в Астане. От первого вдоха до уверенной техники.',
+    ],
+    coachIntro: ['Тренер по плаванию. Помогу плавать увереннее.'],
+  };
+  for (const [key, values] of Object.entries(legacy)) {
+    if (values.includes(safe[key])) safe[key] = defaultSettings[key];
+  }
+  if (safe.location?.trim().toLowerCase() === 'астана') safe.location = defaultSettings.location;
+  const settings = { ...defaultSettings, ...safe };
+  for (const key of ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'phone', 'location']) {
+    if (!settings[key].trim()) settings[key] = defaultSettings[key];
+  }
+  return settings;
+}
+
 export const defaultCoaches = [
   { id: 'medhat', name: 'Медхат Даиров', role: 'Старший тренер', image: '/images/medhat-coach.jpg', senior: true, active: true },
   { id: 'erik', name: 'Раскулов Эрик Рустамович', role: 'Тренер по плаванию', image: '/images/coach-erik.png', senior: false, active: true },
