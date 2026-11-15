@@ -3,7 +3,7 @@ export const defaultSettings = {
   coachName: 'Медхат Даиров',
   heroTitle: 'Характер рождается в воде.',
   heroDescription: 'Школа плавания для детей и взрослых в Кокшетау. От первого вдоха до уверенной техники.',
-  location: 'Астана',
+  location: 'Кокшетау',
   phone: '+7 707 620 4904',
   whatsapp: '77076204904',
   instagram: 'https://www.instagram.com/p/DPTBBraiJYW/',
