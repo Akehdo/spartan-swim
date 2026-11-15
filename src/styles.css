@@ -154,7 +154,7 @@ h2 { font-size: clamp(39px, 3.6vw, 55px); letter-spacing: -.015em; text-transfor
 .footer-invitation .button:hover { background: #e3cba4; }
 .footer-top { display: flex; align-items: center; gap: 45px; padding-block: 33px; }
 .footer-top .brand { margin-right: auto; }
-.footer-location { font-size: 13px; color: #aab9c9; }
+.footer-location { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: #aab9c9; }
 .footer-phone { font-size: 20px; font-weight: 600; letter-spacing: -.02em; white-space: nowrap; }
 .contact-note { max-width: 660px; padding-bottom: 20px; color: #adbdcc; font-size: 13px; }
 .footer-bottom { border-top: 1px solid #ffffff20; display: flex; align-items: center; justify-content: space-between; gap: 25px; padding-block: 21px 24px; color: #a6b5c5; font-size: 10px; }
