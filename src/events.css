@@ -126,3 +126,35 @@
 @media (max-width: 420px) {
   .distance-grid { grid-template-columns: 1fr; }
 }
+
+/* ── Адаптивность страницы событий ───────────────────────────────────── */
+@media (max-width: 900px) {
+  .event-facts { grid-template-columns: 1fr; }
+  .register-panel { padding: 28px 24px 26px; }
+}
+@media (max-width: 700px) {
+  .event-hero .eyebrow { font-size: 11px; letter-spacing: .12em; }
+  .event-lead { font-size: 15px; }
+  .event-motto { font-size: 17px; }
+  .event-facts dt { font-size: 11px; }
+  .event-facts dd { font-size: 19px; }
+  .event-facts dd span { font-size: 13px; }
+  .event-actions .button { width: 100%; }
+  .event-hero .text-link { min-height: 44px; font-size: 13px; }
+  .event-deadline { font-size: 13px; align-items: flex-start; }
+  .distance-card li { font-size: 14px; }
+  .detail-card { padding: 24px 20px; }
+  .detail-card p, .event-note { font-size: 14px; }
+  .distance-group-title { font-size: 11px; }
+  .distance-option span { min-height: 48px; font-size: 14px; }
+  .distance-option span::before { width: 18px; height: 18px; }
+  .event-gender span { min-height: 52px; font-size: 15px; }
+  .age-hint { font-size: 13px; }
+  .register-intro .form-whatsapp { min-height: 44px; }
+  .register-panel { padding: 22px 16px 20px; margin-inline: 0; }
+}
+@media (max-width: 370px) {
+  .event-hero h1 { font-size: 48px; }
+  .event-motto { font-size: 15px; letter-spacing: .03em; }
+  .age-list li { font-size: 17px; padding: 10px 8px; }
+}
