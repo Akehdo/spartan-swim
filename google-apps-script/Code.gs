@@ -19,7 +19,7 @@ var EVENTS = {
     distances: {
       free50: '50 м вольный стиль', back50: '50 м на спине', breast50: '50 м брасс', fly50: '50 м баттерфляй',
       free50f: '50 м вольный стиль (ласты)', back50f: '50 м на спине (ласты)', breast50f: '50 м брасс (ласты)', fly50f: '50 м баттерфляй (ласты)',
-      free200: '200 м вольный стиль', free200f: '200 м вольный стиль (ласты)', im200: '200 м комплекс', im200f: '200 м комплекс (ласты)',
+      free200: '200 м вольный стиль', free200f: '200 м вольный стиль (ласты)',
       free400: '400 м вольный стиль', free400f: '400 м вольный стиль (ласты)',
       relayFree: 'Эстафета 4×50 вольный стиль', relayIm: 'Эстафета 4×50 комплекс'
     }
@@ -453,7 +453,7 @@ function validateEventRegistration_(input) {
   if (age === '' || age > 100) fail_('INVALID_BIRTH_DATE', 'Проверьте дату рождения.');
   var group = EVENT_AGE_GROUPS.filter(function (item) { return age >= item[1] && age <= item[2]; })[0];
   if (!group) fail_('AGE_NOT_ALLOWED', 'Турнир проводится среди взрослых: на день старта участнику должно быть 20 лет или больше.');
-  if (!Array.isArray(input.distances) || input.distances.length < 1 || input.distances.length > 16) {
+  if (!Array.isArray(input.distances) || input.distances.length < 1 || input.distances.length > Object.keys(eventInfo.distances).length) {
     fail_('DISTANCES_REQUIRED', 'Выберите хотя бы одну дистанцию.');
   }
   var seen = {};

@@ -93,8 +93,9 @@ test('POST uses text/plain to avoid CORS preflight and only accepts confirmed AP
 test('LEONIDAS SWIM CUP data matches the regulations and the Apps Script contract', async () => {
   const { leonidasCup, distanceGroups, ageOnDate, ageGroupFor, registrationOpen, distanceLabel } = await import('../src/events-data.js');
   const ids = distanceGroups.flatMap(group => group.items.map(item => item.id));
-  assert.equal(ids.length, 16);
-  assert.equal(new Set(ids).size, 16);
+  assert.equal(ids.length, 14);
+  assert.equal(new Set(ids).size, 14);
+  assert.equal(ids.some(id => id.startsWith('im')), false);
   const backend = readFileSync(new URL('../google-apps-script/Code.gs', import.meta.url), 'utf8');
   for (const id of ids) assert.ok(backend.includes(` ${id}: '`), id);
   assert.equal(leonidasCup.date, '2027-01-03');

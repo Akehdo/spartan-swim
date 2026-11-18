@@ -44,7 +44,7 @@
 .distance-card ul { margin: 16px 0 0; padding: 0; list-style: none; }
 .distance-card li { padding-block: 9px; border-top: 1px solid var(--line); font-size: 13px; line-height: 1.45; }
 
-.event-details { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.event-details { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .detail-card { padding: 28px 26px; color: #e8e9eb; background: var(--night); }
 .detail-card>.icon { width: 30px; height: 30px; color: var(--gold); }
 .detail-card h3 { margin: 18px 0 12px; font-size: 24px; text-transform: uppercase; color: #fff; }
