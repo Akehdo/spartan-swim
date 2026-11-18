@@ -121,10 +121,7 @@
             <div class="form-field"><label for="event-phone">Телефон</label><input id="event-phone" name="phone" type="tel" autocomplete="tel" inputmode="tel" placeholder="+7 (___) ___-__-__" maxlength="25" required /></div>
           </div>
           <p class="age-hint" id="age-hint" aria-live="polite">Укажите дату рождения — определим возрастную группу.</p>
-          <div class="form-row event-row">
-            <div class="form-field"><label for="event-city">Город <span class="optional">необязательно</span></label><input id="event-city" name="city" type="text" autocomplete="address-level2" placeholder="Кокшетау" maxlength="100" /></div>
-            <div class="form-field"><label for="event-club">Клуб / команда <span class="optional">необязательно</span></label><input id="event-club" name="club" type="text" autocomplete="organization" placeholder="Если есть" maxlength="100" /></div>
-          </div>
+          <div class="form-field"><label for="event-club">Клуб / команда <span class="optional">необязательно</span></label><input id="event-club" name="club" type="text" autocomplete="organization" placeholder="Если есть" maxlength="100" /></div>
           <fieldset class="distance-picker" id="distance-picker"><legend class="form-legend">Дистанции <span class="optional">можно выбрать несколько</span></legend></fieldset>
           <div class="honeypot" aria-hidden="true"><label for="event-website">Не заполняйте это поле</label><input id="event-website" name="website" type="text" tabindex="-1" autocomplete="off" /></div>
           <label class="consent"><input type="checkbox" name="consent" required /><span>Согласен на передачу данных оргкомитету Spartan Swim для регистрации на турнир. <button type="button" data-privacy>Подробнее</button></span></label>
@@ -141,7 +138,7 @@
     <div class="footer-bottom"><span>© <span id="year">2026</span> SPARTAN SWIM</span><div><a href="/">Школа плавания <svg class="icon"><use href="#i-diagonal" /></svg></a><a data-event-whatsapp href="https://wa.me/77088081378" target="_blank" rel="noopener noreferrer">WhatsApp <svg class="icon"><use href="#i-diagonal" /></svg></a><button class="privacy-link" data-privacy>Обработка данных</button></div></div>
   </div></footer>
 
-  <dialog id="privacy-dialog" class="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close" data-close aria-label="Закрыть"><svg class="icon"><use href="#i-close" /></svg></button><h2 id="privacy-title">Данные в заявке</h2><p>Форма передаёт оргкомитету Spartan Swim фамилию и имя участника, зачёт, дату рождения, телефон, город, клуб и выбранные дистанции.</p><p>Эти сведения нужны для формирования заплывов и связи с участником. Заявки сохраняются в закрытой Google Таблице; уведомление с деталями поступает в Telegram оргкомитета.</p><p>Уточнить сведения или попросить удалить заявку можно по телефону <a href="tel:+77088081378">+7 708 808 1378</a>.</p><button class="button button-dark" data-close>Понятно</button></dialog>
+  <dialog id="privacy-dialog" class="privacy-dialog" aria-labelledby="privacy-title"><button class="dialog-close" data-close aria-label="Закрыть"><svg class="icon"><use href="#i-close" /></svg></button><h2 id="privacy-title">Данные в заявке</h2><p>Форма передаёт оргкомитету Spartan Swim фамилию и имя участника, зачёт, дату рождения, телефон, клуб и выбранные дистанции.</p><p>Эти сведения нужны для формирования заплывов и связи с участником. Заявки сохраняются в закрытой Google Таблице; уведомление с деталями поступает в Telegram оргкомитета.</p><p>Уточнить сведения или попросить удалить заявку можно по телефону <a href="tel:+77088081378">+7 708 808 1378</a>.</p><button class="button button-dark" data-close>Понятно</button></dialog>
   <noscript><div class="noscript-message">Для формы регистрации включите JavaScript. Подать заявку также можно в WhatsApp: <a href="https://wa.me/77088081378">+7 708 808 1378</a>.</div></noscript>
 </body>
 </html>
