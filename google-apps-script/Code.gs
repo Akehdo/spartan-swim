@@ -160,6 +160,7 @@ function validateRegistration_(input) {
   if (!/^[+\d\s()\-]+$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
     fail_('INVALID_PHONE', 'Проверьте номер телефона: от 10 до 15 цифр.');
   }
+  phone = formatPhone_(phone);
   if (!/^[a-zA-Z0-9_-]{8,80}$/.test(requestId)) fail_('INVALID_REQUEST', 'Обновите страницу и попробуйте снова.');
   if (input.experience !== 'beginner' && input.experience !== 'confident') fail_('INVALID_EXPERIENCE', 'Выберите уровень подготовки.');
   var age = input.age === '' || input.age === undefined || input.age === null ? '' : Number(input.age);
@@ -444,6 +445,7 @@ function validateEventRegistration_(input) {
   if (!/^[+\d\s()\-]+$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
     fail_('INVALID_PHONE', 'Проверьте номер телефона: от 10 до 15 цифр.');
   }
+  phone = formatPhone_(phone);
   if (!/^[a-zA-Z0-9_-]{8,80}$/.test(requestId)) fail_('INVALID_REQUEST', 'Обновите страницу и попробуйте снова.');
   if (input.gender !== 'male' && input.gender !== 'female') fail_('INVALID_GENDER', 'Выберите зачёт: мужчины или женщины.');
   var birthDate = cleanText_(input.birthDate, 10);
@@ -537,6 +539,36 @@ function safeCell_(value) {
 
 function plainCell_(value) {
   return String(value).replace(/^'(?=[\s]*[=+\-@])/, '');
+}
+
+/** Единый вид телефона: +7 707 000 00 00. 8XXXXXXXXXX, 7XXXXXXXXXX и XXXXXXXXXX с 7 в начале — казахстанские номера; остальные остаются как есть. */
+function formatPhone_(phone) {
+  var digits = String(phone).replace(/\D/g, '');
+  if (digits.length === 11 && (digits.charAt(0) === '8' || digits.charAt(0) === '7')) digits = digits.slice(1);
+  else if (!(digits.length === 10 && digits.charAt(0) === '7')) return String(phone).trim();
+  return '+7 ' + digits.slice(0, 3) + ' ' + digits.slice(3, 6) + ' ' + digits.slice(6, 8) + ' ' + digits.slice(8, 10);
+}
+
+/** Запустить вручную один раз: приводит уже сохранённые телефоны в «Заявках» и «Турнир — заявки» к виду +7 707 000 00 00. */
+function normalizePhones() {
+  var spreadsheet = getSpreadsheet_();
+  var changed = 0;
+  [[SHEETS.registrations, 5], [SHEETS.eventRegistrations, 11]].forEach(function (target) {
+    var sheet = spreadsheet.getSheetByName(target[0]);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    var range = sheet.getRange(2, target[1], sheet.getLastRow() - 1, 1);
+    range.getValues().forEach(function (row, index) {
+      var current = plainCell_(String(row[0])).trim();
+      if (!current) return;
+      var next = formatPhone_(current);
+      if (next === current) return;
+      // Текстовый формат ячейки: «+7 …» сохраняется как номер, а не как формула.
+      sheet.getRange(index + 2, target[1]).setNumberFormat('@').setValue(next);
+      changed++;
+    });
+  });
+  Logger.log('Телефонов приведено к виду +7 707 000 00 00: ' + changed);
+  return changed;
 }
 
 /** WhatsApp требует международный формат: казахстанский номер 8XXXXXXXXXX становится 7XXXXXXXXXX. */

@@ -70,6 +70,7 @@ function harness({ telegram = true, notificationFlushFails = false } = {}) {
         return builder;
       }
     },
+    Logger: { log() {} },
     LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock() { events.push('release'); } }) },
     CacheService: { getScriptCache: () => ({ get: key => cache.get(key), put: (key, value) => cache.set(key, value) }) },
     Utilities: {
@@ -136,7 +137,7 @@ test('a child application is durably saved, formulas escaped, and sent as plain 
   const rows = h.sheets.get('Заявки').rows;
   assert.equal(rows.length, 2);
   assert.equal(rows[1][3], '\'=HYPERLINK("bad")');
-  assert.equal(rows[1][4], "'+7 707 000 1234");
+  assert.equal(rows[1][4], "'+7 707 000 12 34");
   assert.equal(rows[1][11], 'sent');
   assert.equal(rows[1][12], 1);
   assert.equal(h.messages.length, 1);
@@ -472,9 +473,32 @@ test('WhatsApp links in Telegram convert local Kazakh numbers starting with 8 to
   openEventRegistration(h);
   h.post(eventRegistration({ phone: '8 707 000 5678' }));
   assert.match(h.messages[0].data.text, /wa\.me\/77070005678\n/);
-  assert.equal(h.sheets.get('Турнир — заявки').rows[1][10], '8 707 000 5678');
+  assert.equal(h.sheets.get('Турнир — заявки').rows[1][10], "'+7 707 000 56 78");
   h.post(registration({ phone: '8 (707) 111-22-33' }));
   assert.match(h.messages[1].data.text, /wa\.me\/77071112233\n/);
   assert.equal(h.context.whatsappNumber_('+7 707 000 5678'), '77070005678');
   assert.equal(h.context.whatsappNumber_('8 800 12'), '880012');
+});
+
+test('phones are saved as +7 707 000 00 00 and normalizePhones() fixes rows saved earlier', () => {
+  const h = harness();
+  openEventRegistration(h);
+  const f = h.context.formatPhone_;
+  for (const input of ['87070001234', '8 (707) 000-12-34', '+7 707 000 1234', '77070001234', '707 000 12 34']) assert.equal(f(input), '+7 707 000 12 34');
+  assert.equal(f('+49 30 1234 5678'), '+49 30 1234 5678');
+  assert.equal(f(' 8 800 12 '), '8 800 12');
+  h.post(registration({ phone: '8 (707) 111-22-33' }));
+  assert.equal(h.sheets.get('Заявки').rows[1][4], "'+7 707 111 22 33");
+  // Строки, сохранённые старой версией, приводятся одной функцией; остальные столбцы не трогаются.
+  const bookings = h.sheets.get('Заявки');
+  bookings.rows.push(['2026-11-01', 'r1', 'id1', 'Анна', '87075554433', '', '', 'beginner', 'g', 'd', true, 'sent', 1, '', '']);
+  bookings.rows.push(['2026-11-02', 'r2', 'id2', 'Иван', '+49 30 1234', '', '', 'beginner', 'g', 'd', true, 'sent', 1, '', '']);
+  const event = h.sheets.get('Турнир — заявки');
+  event.rows.push(['2026-11-03', 'r3', 'id3', 'leonidas-2027', 'T', 'Петров Пётр', 'М', '1990-01-01', '36', '30–39', "'8 701 222 33 44", '', '', 'x', 'TRUE', 'sent', '1']);
+  assert.equal(h.context.normalizePhones(), 2);
+  assert.equal(bookings.rows[2][4], '+7 707 555 44 33');
+  assert.equal(bookings.rows[3][4], '+49 30 1234');
+  assert.equal(event.rows[1][10], '+7 701 222 33 44');
+  assert.equal(bookings.rows[2][3], 'Анна');
+  assert.equal(h.context.normalizePhones(), 0);
 });
