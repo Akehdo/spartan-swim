@@ -8,8 +8,9 @@ var COACH_HEADERS = ['id', 'name', 'role', 'image', 'senior', 'active'];
 var REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'name', 'phone', 'participantName', 'age', 'experience', 'groupId', 'groupDescription', 'consent', 'telegramStatus', 'telegramAttempts', 'coachId', 'coachName'];
 var PUBLIC_SETTING_KEYS = ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'childrenTitle', 'childrenDescription', 'adultsTitle', 'adultsDescription', 'coachIntro', 'location', 'phone', 'whatsapp', 'instagram', 'childrenPrice', 'adultsPrice', 'contactNote'];
 var VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
-var EVENT_REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'eventId', 'eventTitle', 'name', 'gender', 'birthDate', 'ageOnEventDay', 'ageGroup', 'phone', 'city', 'club', 'distances', 'consent', 'telegramStatus', 'telegramAttempts'];
-var EVENT_STATUS_COLUMN = 16;
+/** Столбцы листа «Турнир — заявки». Данные пишутся по названиям столбцов, поэтому порядок можно менять,
+ *  лишние столбцы можно удалять, а недостающие сервер допишет в конец сам. */
+var EVENT_REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'eventId', 'eventTitle', 'name', 'gender', 'birthDate', 'ageOnEventDay', 'ageGroup', 'phone', 'distances', 'consent', 'telegramStatus', 'telegramAttempts'];
 /** Турниры с открытой регистрацией. ID дистанций совпадают с src/events-data.js. */
 var EVENTS = {
   'leonidas-2027': {
@@ -63,7 +64,7 @@ function setup() {
   migrateCoachNames_(coaches);
   var registrations = ensureSheet_(spreadsheet, SHEETS.registrations, REGISTRATION_HEADERS, []);
   ensureRegistrationHeaders_(registrations);
-  ensureSheet_(spreadsheet, SHEETS.eventRegistrations, EVENT_REGISTRATION_HEADERS, []);
+  eventColumns_(ensureSheet_(spreadsheet, SHEETS.eventRegistrations, EVENT_REGISTRATION_HEADERS, []));
   installNotificationRetry();
 }
 
@@ -380,16 +381,52 @@ function retryFailedNotifications() {
   var spreadsheet = getSpreadsheet_();
   var attempted = 0;
   // Общий лимит — 10 доставок за запуск для обычных заявок и заявок на турнир.
-  [[SHEETS.registrations, 12, undefined], [SHEETS.eventRegistrations, EVENT_STATUS_COLUMN, sendEventNotificationLocked_]].forEach(function (target) {
-    var sheet = spreadsheet.getSheetByName(target[0]);
-    if (!sheet || sheet.getLastRow() < 2) return;
-    sheet.getRange(2, target[1], sheet.getLastRow() - 1, 2).getValues().forEach(function (row, index) {
+  var bookings = spreadsheet.getSheetByName(SHEETS.registrations);
+  if (bookings && bookings.getLastRow() >= 2) {
+    bookings.getRange(2, 12, bookings.getLastRow() - 1, 2).getValues().forEach(function (row, index) {
       if (attempted < 10 && row[0] !== 'sent' && Number(row[1] || 0) < 5) {
         attempted++;
-        deliverNotification_(sheet, index + 2, target[2]);
+        deliverNotification_(bookings, index + 2);
       }
     });
+  }
+  var eventSheet = spreadsheet.getSheetByName(SHEETS.eventRegistrations);
+  if (!eventSheet || eventSheet.getLastRow() < 2) return;
+  var columns = eventColumns_(eventSheet);
+  var rows = eventSheet.getRange(2, 1, eventSheet.getLastRow() - 1, columns.width).getValues();
+  rows.forEach(function (row, index) {
+    // Пропускаем пустые строки, оставшиеся после ручного удаления данных.
+    if (!row[columns.requestId - 1]) return;
+    if (attempted < 10 && row[columns.telegramStatus - 1] !== 'sent' && Number(row[columns.telegramAttempts - 1] || 0) < 5) {
+      attempted++;
+      deliverNotification_(eventSheet, index + 2, sendEventNotificationLocked_);
+    }
   });
+}
+
+/** Номера столбцов листа турнира по их названиям (1 = A). Недостающие заголовки дописываются в конец. */
+function eventColumns_(sheet) {
+  var width = Math.max(sheet.getLastColumn(), 1);
+  var headers = sheet.getRange(1, 1, 1, width).getDisplayValues()[0].map(function (value) { return String(value).trim(); });
+  while (headers.length && !headers[headers.length - 1]) headers.pop();
+  EVENT_REGISTRATION_HEADERS.forEach(function (name) {
+    if (headers.indexOf(name) !== -1) return;
+    headers.push(name);
+    sheet.getRange(1, headers.length).setValue(name).setFontWeight('bold').setBackground('#d9eee7');
+  });
+  var columns = { width: headers.length };
+  headers.forEach(function (name, index) {
+    if (name && !Object.prototype.hasOwnProperty.call(columns, name)) columns[name] = index + 1;
+  });
+  return columns;
+}
+
+/** Строка листа турнира как объект { createdAt: …, phone: … } по названиям столбцов. */
+function readEventRow_(sheet, columns, rowNumber) {
+  var values = sheet.getRange(rowNumber, 1, 1, columns.width).getValues()[0];
+  var row = {};
+  EVENT_REGISTRATION_HEADERS.forEach(function (name) { row[name] = values[columns[name] - 1]; });
+  return row;
 }
 
 /** Регистрация на турнир. Заявки пишутся в отдельный лист «Турнир — заявки». */
@@ -405,23 +442,32 @@ function registerEvent_(input) {
   var rowNumber;
   var registrationId;
   try {
-    sheet = getSpreadsheet_().getSheetByName(SHEETS.eventRegistrations);
-    if (!sheet) fail_('NOT_CONFIGURED', 'Регистрация пока недоступна. Свяжитесь с организаторами.');
-    var existing = findRequest_(sheet, data.requestId, EVENT_REGISTRATION_HEADERS.length);
-    if (existing) {
-      return { ok: true, registrationId: existing.values[2], notificationSent: existing.values[EVENT_STATUS_COLUMN - 1] === 'sent', duplicate: true };
+    // Если лист удалили вручную, создаём его заново с нужными столбцами.
+    sheet = ensureSheet_(getSpreadsheet_(), SHEETS.eventRegistrations, EVENT_REGISTRATION_HEADERS, []);
+    var columns = eventColumns_(sheet);
+    if (sheet.getLastRow() >= 2) {
+      var ids = sheet.getRange(2, columns.requestId, sheet.getLastRow() - 1, 1).getValues();
+      for (var index = 0; index < ids.length; index++) {
+        if (ids[index][0] !== data.requestId) continue;
+        var existing = readEventRow_(sheet, columns, index + 2);
+        return { ok: true, registrationId: existing.registrationId, notificationSent: existing.telegramStatus === 'sent', duplicate: true };
+      }
     }
     throttle_(data.phone, 'event');
     registrationId = Utilities.getUuid();
     rowNumber = sheet.getLastRow() + 1;
-    // Текстовый формат: Таблица не превратит дату рождения и телефон в другие значения.
-    sheet.getRange(rowNumber, 1, 1, EVENT_REGISTRATION_HEADERS.length).setNumberFormat('@').setValues([[
-      new Date().toISOString(), data.requestId, registrationId, data.eventId, eventInfo.title,
-      safeCell_(data.name), data.gender === 'male' ? 'М' : 'Ж', data.birthDate, String(data.age), data.ageGroup,
-      safeCell_(data.phone), safeCell_(data.city), safeCell_(data.club),
-      data.distances.map(function (id) { return eventInfo.distances[id]; }).join('; '),
-      'TRUE', 'pending', '0'
-    ]]);
+    var record = {
+      createdAt: new Date().toISOString(), requestId: data.requestId, registrationId: registrationId,
+      eventId: data.eventId, eventTitle: eventInfo.title, name: safeCell_(data.name), gender: data.gender === 'male' ? 'М' : 'Ж',
+      birthDate: data.birthDate, ageOnEventDay: String(data.age), ageGroup: data.ageGroup, phone: data.phone,
+      distances: data.distances.map(function (id) { return eventInfo.distances[id]; }).join('; '),
+      consent: 'TRUE', telegramStatus: 'pending', telegramAttempts: '0'
+    };
+    var values = [];
+    for (var column = 0; column < columns.width; column++) values.push('');
+    EVENT_REGISTRATION_HEADERS.forEach(function (name) { values[columns[name] - 1] = record[name]; });
+    // Текстовый формат: Таблица не превратит дату рождения и телефон в другие значения, «+7 …» — не формула.
+    sheet.getRange(rowNumber, 1, 1, columns.width).setNumberFormat('@').setValues([values]);
     SpreadsheetApp.flush();
   } finally {
     lock.releaseLock();
@@ -438,8 +484,6 @@ function validateEventRegistration_(input) {
   if (!eventInfo) fail_('EVENT_UNAVAILABLE', 'Этот турнир недоступен для регистрации.');
   var name = cleanText_(input.name, 120);
   var phone = cleanText_(input.phone, 40);
-  var city = cleanText_(input.city || '', 100);
-  var club = cleanText_(input.club || '', 100);
   var requestId = cleanText_(input.requestId, 80);
   if (name.length < 5 || name.split(/\s+/).length < 2) fail_('INVALID_NAME', 'Укажите фамилию и имя участника.');
   if (!/^[+\d\s()\-]+$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
@@ -463,7 +507,7 @@ function validateEventRegistration_(input) {
     }
     seen[id] = true;
   });
-  return { eventId: eventId, name: name, phone: phone, city: city, club: club, requestId: requestId, gender: input.gender,
+  return { eventId: eventId, name: name, phone: phone, requestId: requestId, gender: input.gender,
     birthDate: birthDate, age: age, ageGroup: group[0], distances: input.distances.slice() };
 }
 
@@ -481,28 +525,27 @@ function ageOnDate_(birthDate, eventDate) {
 }
 
 function sendEventNotificationLocked_(sheet, rowNumber) {
-  var row = sheet.getRange(rowNumber, 1, 1, EVENT_REGISTRATION_HEADERS.length).getValues()[0];
-  if (row[EVENT_STATUS_COLUMN - 1] === 'sent') return true;
-  var attempts = Number(row[EVENT_STATUS_COLUMN] || 0);
+  var columns = eventColumns_(sheet);
+  var row = readEventRow_(sheet, columns, rowNumber);
+  if (row.telegramStatus === 'sent') return true;
+  var attempts = Number(row.telegramAttempts || 0);
   var properties = PropertiesService.getScriptProperties();
   var token = properties.getProperty('TELEGRAM_BOT_TOKEN');
   var chatId = properties.getProperty('TELEGRAM_CHAT_ID');
   if (!token || !chatId) {
-    sheet.getRange(rowNumber, EVENT_STATUS_COLUMN).setValue('not_configured');
+    sheet.getRange(rowNumber, columns.telegramStatus).setValue('not_configured');
     return false;
   }
   if (attempts >= 5) return false;
-  sheet.getRange(rowNumber, EVENT_STATUS_COLUMN + 1).setValue(String(attempts + 1));
-  var text = '🏆 Регистрация на турнир · ' + row[4] + '\n\n' +
-    'Участник: ' + plainCell_(row[5]) + '\n' +
-    'Зачёт: ' + (row[6] === 'М' ? 'мужчины' : 'женщины') + ' · ' + row[9] + ' (' + row[8] + ' лет на день старта)\n' +
-    'Телефон: ' + plainCell_(row[10]) + '\n' +
-    'WhatsApp: https://wa.me/' + whatsappNumber_(plainCell_(row[10])) + '\n' +
-    (row[11] ? 'Город: ' + plainCell_(row[11]) + '\n' : '') +
-    (row[12] ? 'Клуб / команда: ' + plainCell_(row[12]) + '\n' : '') +
-    'Дистанции: ' + row[13];
+  sheet.getRange(rowNumber, columns.telegramAttempts).setValue(String(attempts + 1));
+  var text = '🏆 Регистрация на турнир · ' + row.eventTitle + '\n\n' +
+    'Участник: ' + plainCell_(row.name) + '\n' +
+    'Зачёт: ' + (row.gender === 'М' ? 'мужчины' : 'женщины') + ' · ' + row.ageGroup + ' (' + row.ageOnEventDay + ' лет на день старта)\n' +
+    'Телефон: ' + plainCell_(row.phone) + '\n' +
+    'WhatsApp: https://wa.me/' + whatsappNumber_(plainCell_(row.phone)) + '\n' +
+    'Дистанции: ' + row.distances;
   var sent = sendTelegram_(token, chatId, text);
-  sheet.getRange(rowNumber, EVENT_STATUS_COLUMN).setValue(sent ? 'sent' : 'error');
+  sheet.getRange(rowNumber, columns.telegramStatus).setValue(sent ? 'sent' : 'error');
   return sent;
 }
 
@@ -553,9 +596,10 @@ function formatPhone_(phone) {
 function normalizePhones() {
   var spreadsheet = getSpreadsheet_();
   var changed = 0;
-  [[SHEETS.registrations, 5], [SHEETS.eventRegistrations, 11]].forEach(function (target) {
-    var sheet = spreadsheet.getSheetByName(target[0]);
+  [SHEETS.registrations, SHEETS.eventRegistrations].forEach(function (name) {
+    var sheet = spreadsheet.getSheetByName(name);
     if (!sheet || sheet.getLastRow() < 2) return;
+    var target = [name, name === SHEETS.registrations ? 5 : eventColumns_(sheet).phone];
     var range = sheet.getRange(2, target[1], sheet.getLastRow() - 1, 1);
     range.getValues().forEach(function (row, index) {
       var current = plainCell_(String(row[0])).trim();

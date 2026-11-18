@@ -9,6 +9,9 @@ const source = readFileSync(new URL('../google-apps-script/Code.gs', import.meta
 class Sheet {
   rows = [];
   getLastRow() { return this.rows.length; }
+  getLastColumn() {
+    return Math.max(0, ...this.rows.map(row => { let n = row.length; while (n && (row[n - 1] === '' || row[n - 1] === undefined)) n--; return n; }));
+  }
   appendRow(row) { this.rows.push([...row]); }
   setFrozenRows() {}
   autoResizeColumns() {}
@@ -397,7 +400,7 @@ test('setup corrects only the old Erik surname and preserves manager edits and p
 
 function eventRegistration(overrides = {}) {
   return { action: 'event_register', eventId: 'leonidas-2027', name: 'Иванов Иван', gender: 'male', birthDate: '1990-01-04',
-    phone: '+7 707 000 5678', city: 'Кокшетау', club: '=HYPERLINK("x")', distances: ['free50', 'free400f', 'relayIm'],
+    phone: '+7 707 000 5678', distances: ['free50', 'free400f', 'relayIm'],
     consent: true, website: '', requestId: '22222222-3333-4444-8555-666666666666', ...overrides };
 }
 
@@ -423,12 +426,13 @@ test('event registration goes to its own sheet with age group from the start dat
   // 4 января ему ещё 36: на день старта, 3 января 2027, — 36 полных лет.
   assert.equal(row[8], '36');
   assert.equal(row[9], '30–39');
-  assert.equal(row[12], `'=HYPERLINK("x")`);
-  assert.equal(row[13], '50 м вольный стиль; 400 м вольный стиль (ласты); Эстафета 4×50 комплекс');
-  assert.equal(row[15], 'sent');
+  assert.equal(row[10], '+7 707 000 56 78');
+  assert.equal(row[11], '50 м вольный стиль; 400 м вольный стиль (ласты); Эстафета 4×50 комплекс');
+  assert.equal(row[13], 'sent');
+  assert.equal(sheet.rows[0].length, 15);
   assert.equal(h.messages.length, 1);
   assert.match(h.messages[0].data.text, /LEONIDAS SWIM CUP 2027/);
-  assert.match(h.messages[0].data.text, /Клуб \/ команда: =HYPERLINK/);
+  assert.doesNotMatch(h.messages[0].data.text, /Клуб|Город/);
   assert.equal(h.post(eventRegistration()).duplicate, true);
   assert.equal(sheet.rows.length, 2);
   assert.equal(h.messages.length, 1);
@@ -461,11 +465,11 @@ test('failed event notifications are retried by the shared background trigger', 
   h.failTelegram();
   assert.equal(h.post(eventRegistration()).notificationSent, false);
   const row = h.sheets.get('Турнир — заявки').rows[1];
-  assert.equal(row[15], 'error');
+  assert.equal(row[13], 'error');
   h.restoreTelegram();
   h.context.retryFailedNotifications();
-  assert.equal(row[15], 'sent');
-  assert.equal(row[16], '2');
+  assert.equal(row[13], 'sent');
+  assert.equal(row[14], '2');
 });
 
 test('WhatsApp links in Telegram convert local Kazakh numbers starting with 8 to the 7 country code', () => {
@@ -473,7 +477,7 @@ test('WhatsApp links in Telegram convert local Kazakh numbers starting with 8 to
   openEventRegistration(h);
   h.post(eventRegistration({ phone: '8 707 000 5678' }));
   assert.match(h.messages[0].data.text, /wa\.me\/77070005678\n/);
-  assert.equal(h.sheets.get('Турнир — заявки').rows[1][10], "'+7 707 000 56 78");
+  assert.equal(h.sheets.get('Турнир — заявки').rows[1][10], '+7 707 000 56 78');
   h.post(registration({ phone: '8 (707) 111-22-33' }));
   assert.match(h.messages[1].data.text, /wa\.me\/77071112233\n/);
   assert.equal(h.context.whatsappNumber_('+7 707 000 5678'), '77070005678');
@@ -494,11 +498,40 @@ test('phones are saved as +7 707 000 00 00 and normalizePhones() fixes rows save
   bookings.rows.push(['2026-11-01', 'r1', 'id1', 'Анна', '87075554433', '', '', 'beginner', 'g', 'd', true, 'sent', 1, '', '']);
   bookings.rows.push(['2026-11-02', 'r2', 'id2', 'Иван', '+49 30 1234', '', '', 'beginner', 'g', 'd', true, 'sent', 1, '', '']);
   const event = h.sheets.get('Турнир — заявки');
-  event.rows.push(['2026-11-03', 'r3', 'id3', 'leonidas-2027', 'T', 'Петров Пётр', 'М', '1990-01-01', '36', '30–39', "'8 701 222 33 44", '', '', 'x', 'TRUE', 'sent', '1']);
+  event.rows.push(['2026-11-03', 'r3', 'id3', 'leonidas-2027', 'T', 'Петров Пётр', 'М', '1990-01-01', '36', '30–39', "'8 701 222 33 44", 'x', 'TRUE', 'sent', '1']);
   assert.equal(h.context.normalizePhones(), 2);
   assert.equal(bookings.rows[2][4], '+7 707 555 44 33');
   assert.equal(bookings.rows[3][4], '+49 30 1234');
   assert.equal(event.rows[1][10], '+7 701 222 33 44');
   assert.equal(bookings.rows[2][3], 'Анна');
   assert.equal(h.context.normalizePhones(), 0);
+});
+
+test('tournament sheet survives manual edits: deleted columns, reordered columns and a deleted sheet', () => {
+  const h = harness();
+  openEventRegistration(h);
+  const sheet = () => h.sheets.get('Турнир — заявки');
+  // Менеджер удалил старые столбцы city/club и переставил телефон в начало, справа — свой столбец.
+  sheet().rows[0] = ['phone', 'createdAt', 'requestId', 'registrationId', 'eventId', 'eventTitle', 'name', 'gender', 'birthDate', 'ageOnEventDay', 'ageGroup', 'distances', 'consent', 'telegramStatus', 'telegramAttempts', 'Заметки'];
+  assert.equal(h.post(eventRegistration()).ok, true);
+  let row = sheet().rows[1];
+  assert.equal(row[0], '+7 707 000 56 78');
+  assert.equal(row[6], 'Иванов Иван');
+  assert.equal(row[13], 'sent');
+  assert.equal(row[15], '');
+  // Удалённые столбцы дописываются в конец, данные не съезжают.
+  sheet().rows[0] = ['createdAt', 'requestId', 'name', 'phone', 'distances'];
+  assert.equal(h.post(eventRegistration({ requestId: crypto.randomUUID(), name: 'Петров Пётр' })).ok, true);
+  const headers = sheet().rows[0];
+  assert.equal(headers.length, 15);
+  row = sheet().rows[2];
+  assert.equal(row[2], 'Петров Пётр');
+  assert.equal(row[3], '+7 707 000 56 78');
+  assert.equal(row[headers.indexOf('telegramStatus')], 'sent');
+  // Лист удалили целиком — следующая заявка создаёт его заново.
+  h.sheets.delete('Турнир — заявки');
+  assert.equal(h.post(eventRegistration({ requestId: crypto.randomUUID(), name: 'Сидоров Олег' })).ok, true);
+  assert.deepEqual(sheet().rows[0], [...h.context.EVENT_REGISTRATION_HEADERS]);
+  assert.equal(sheet().rows[1][5], 'Сидоров Олег');
+  assert.equal(h.messages.length, 3);
 });
