@@ -19,9 +19,9 @@ var EVENTS = {
     distances: {
       free50: '50 м вольный стиль', back50: '50 м на спине', breast50: '50 м брасс', fly50: '50 м баттерфляй',
       free50f: '50 м вольный стиль (ласты)', back50f: '50 м на спине (ласты)', breast50f: '50 м брасс (ласты)', fly50f: '50 м баттерфляй (ласты)',
-      free200: '200 м кроль', free200f: '200 м кроль (ласты)', im200: '200 м комплекс', im200f: '200 м комплекс (ласты)',
-      free400: '400 м кроль', free400f: '400 м кроль (ласты)',
-      relayFree: 'Эстафета 4×50 кроль', relayIm: 'Эстафета 4×50 комплекс'
+      free200: '200 м вольный стиль', free200f: '200 м вольный стиль (ласты)', im200: '200 м комплекс', im200f: '200 м комплекс (ласты)',
+      free400: '400 м вольный стиль', free400f: '400 м вольный стиль (ласты)',
+      relayFree: 'Эстафета 4×50 вольный стиль', relayIm: 'Эстафета 4×50 комплекс'
     }
   }
 };
@@ -349,7 +349,7 @@ function sendNotificationLocked_(sheet, rowNumber) {
     var text = '🏊 Новая заявка · SPARTAN SWIM\n\n' +
       'Контакт: ' + plainCell_(row[3]) + '\n' +
       'Телефон: ' + plainCell_(row[4]) + '\n' +
-      'WhatsApp: https://wa.me/' + plainCell_(row[4]).replace(/\D/g, '') + '\n' +
+      'WhatsApp: https://wa.me/' + whatsappNumber_(plainCell_(row[4])) + '\n' +
       (row[5] ? 'Участник: ' + plainCell_(row[5]) + (row[6] !== '' ? ' · ' + row[6] + ' лет' : '') + '\n' : '') +
       'Уровень: ' + (row[7] === 'beginner' ? 'Начинающий' : 'Уверенно держится на воде') + '\n' +
       'Группа: ' + row[9] + '\n' +
@@ -495,7 +495,7 @@ function sendEventNotificationLocked_(sheet, rowNumber) {
     'Участник: ' + plainCell_(row[5]) + '\n' +
     'Зачёт: ' + (row[6] === 'М' ? 'мужчины' : 'женщины') + ' · ' + row[9] + ' (' + row[8] + ' лет на день старта)\n' +
     'Телефон: ' + plainCell_(row[10]) + '\n' +
-    'WhatsApp: https://wa.me/' + plainCell_(row[10]).replace(/\D/g, '') + '\n' +
+    'WhatsApp: https://wa.me/' + whatsappNumber_(plainCell_(row[10])) + '\n' +
     (row[11] ? 'Город: ' + plainCell_(row[11]) + '\n' : '') +
     (row[12] ? 'Клуб / команда: ' + plainCell_(row[12]) + '\n' : '') +
     'Дистанции: ' + row[13];
@@ -537,6 +537,12 @@ function safeCell_(value) {
 
 function plainCell_(value) {
   return String(value).replace(/^'(?=[\s]*[=+\-@])/, '');
+}
+
+/** WhatsApp требует международный формат: казахстанский номер 8XXXXXXXXXX становится 7XXXXXXXXXX. */
+function whatsappNumber_(phone) {
+  var digits = String(phone).replace(/\D/g, '');
+  return digits.length === 11 && digits.charAt(0) === '8' ? '7' + digits.slice(1) : digits;
 }
 
 function fail_(code, message) {

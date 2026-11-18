@@ -87,7 +87,6 @@ function collect() {
     gender: String(data.get('gender') || ''),
     birthDate: String(data.get('birthDate') || ''),
     phone: String(data.get('phone') || '').trim(),
-    club: String(data.get('club') || '').trim(),
     distances: data.getAll('distances').map(String),
     consent: data.get('consent') === 'on',
     website: String(data.get('website') || ''),
@@ -114,7 +113,6 @@ function whatsappMessage(payload) {
     `Участник: ${payload.name}`,
     `Зачёт: ${payload.gender === 'male' ? 'мужчины' : 'женщины'}, ${ageGroupFor(age)?.label || ''} (${payload.birthDate})`,
     `Телефон: ${payload.phone}`,
-    ...(payload.club ? [`Клуб: ${payload.club}`] : []),
     `Дистанции: ${payload.distances.map(distanceLabel).join('; ')}`,
   ].join('\n');
 }

@@ -423,7 +423,7 @@ test('event registration goes to its own sheet with age group from the start dat
   assert.equal(row[8], '36');
   assert.equal(row[9], '30–39');
   assert.equal(row[12], `'=HYPERLINK("x")`);
-  assert.equal(row[13], '50 м вольный стиль; 400 м кроль (ласты); Эстафета 4×50 комплекс');
+  assert.equal(row[13], '50 м вольный стиль; 400 м вольный стиль (ласты); Эстафета 4×50 комплекс');
   assert.equal(row[15], 'sent');
   assert.equal(h.messages.length, 1);
   assert.match(h.messages[0].data.text, /LEONIDAS SWIM CUP 2027/);
@@ -465,4 +465,16 @@ test('failed event notifications are retried by the shared background trigger', 
   h.context.retryFailedNotifications();
   assert.equal(row[15], 'sent');
   assert.equal(row[16], '2');
+});
+
+test('WhatsApp links in Telegram convert local Kazakh numbers starting with 8 to the 7 country code', () => {
+  const h = harness();
+  openEventRegistration(h);
+  h.post(eventRegistration({ phone: '8 707 000 5678' }));
+  assert.match(h.messages[0].data.text, /wa\.me\/77070005678\n/);
+  assert.equal(h.sheets.get('Турнир — заявки').rows[1][10], '8 707 000 5678');
+  h.post(registration({ phone: '8 (707) 111-22-33' }));
+  assert.match(h.messages[1].data.text, /wa\.me\/77071112233\n/);
+  assert.equal(h.context.whatsappNumber_('+7 707 000 5678'), '77070005678');
+  assert.equal(h.context.whatsappNumber_('8 800 12'), '880012');
 });

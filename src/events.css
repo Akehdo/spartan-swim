@@ -61,9 +61,14 @@
 #event-form > .form-field:first-child { margin-top: 0; }
 .register-panel .form-field > label, .register-panel .form-legend { font-size: 13px; }
 .event-row { align-items: start; }
-.event-gender { margin: 16px 0 0; display: block; padding: 0; background: none; }
-.event-gender label { display: inline-block; width: 50%; }
-.event-gender span { background: #e5e8e8; }
+/* Зачёт: две отдельные кнопки, выбранная — тёмная. */
+.event-gender { margin: 16px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 0; background: none; }
+.event-gender .form-legend { grid-column: 1 / -1; }
+.event-gender span { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; font-size: 14px; background: #fff; border: 1px solid #cdd5da; transition: background .15s, border-color .15s, color .15s; }
+.event-gender b { font-size: 20px; line-height: 1; color: #86673e; }
+.event-gender label:hover span { border-color: #9aa5ae; }
+.event-gender input:checked + span { color: #fff; background: var(--night); border-color: var(--night); }
+.event-gender input:checked + span b { color: var(--gold-light); }
 .event-row { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
 .age-hint { margin-top: 8px; font-size: 12px; color: #6f6040; }
 .age-hint.is-error { color: #a2381f; }

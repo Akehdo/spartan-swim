@@ -32,7 +32,7 @@
 
 До публикации новой версии сервер отвечает «Неизвестный запрос», и сайт предлагает отправить заявку в WhatsApp (+7 708 808 1378).
 
-Столбцы листа: `createdAt`, `requestId`, `registrationId`, `eventId`, `eventTitle`, `name` (фамилия и имя), `gender` (М/Ж), `birthDate`, `ageOnEventDay` (полных лет на день старта), `ageGroup` (20–29, 30–39, 40–49, 50+), `phone`, `city`, `club`, `distances` (через «; »), `consent`, `telegramStatus`, `telegramAttempts`.
+Столбцы листа: `createdAt`, `requestId`, `registrationId`, `eventId`, `eventTitle`, `name` (фамилия и имя), `gender` (М/Ж), `birthDate`, `ageOnEventDay` (полных лет на день старта), `ageGroup` (20–29, 30–39, 40–49, 50+), `phone`, `city` и `club` (больше не заполняются формой, оставлены для совместимости), `distances` (через «; »), `consent`, `telegramStatus`, `telegramAttempts`.
 
 Сервер сам считает возраст и группу по дате рождения, принимает только участников от 20 лет и только дистанции из положения. Онлайн-регистрация закрывается автоматически 27 декабря 2026 в 23:59 по Кокшетау (за 7 дней до старта) — и на сайте, и на сервере. Дата, дистанции и срок заданы в `EVENTS` в `Code.gs` и в `src/events-data.js`; при изменении правьте оба файла.
 
