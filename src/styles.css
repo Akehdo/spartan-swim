@@ -408,3 +408,18 @@ dialog[open] { animation: dialog-enter .25s ease both; }
   *, *::before, *::after { animation: none !important; transition: none !important; }
   .reveal-word, .reveal-unit { opacity: 1; transform: none; filter: none; }
 }
+
+/* Анонс турнира на главной странице. */
+.event-teaser { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; align-items: center; gap: 34px; margin-block: 20px 90px; padding: 22px 34px 22px 22px; color: #fff; background: #0c0c0d; }
+.event-teaser img { width: 150px; height: 150px; border-radius: 12px; }
+.event-teaser .section-kicker { color: #c9a86a; }
+.event-teaser h2 { font-size: clamp(30px, 3vw, 44px); }
+.event-teaser h2 span { color: #c9a86a; }
+.event-teaser p:not(.section-kicker) { margin-top: 8px; font-size: 13px; color: #b8bbc0; }
+.event-teaser .button { color: #0c0c0d; background: #c9a86a; }
+.event-teaser .button:hover { background: #e3c78f; }
+@media (max-width: 900px) {
+  .event-teaser { grid-template-columns: 100px minmax(0, 1fr); gap: 20px; padding: 18px; }
+  .event-teaser img { width: 100px; height: 100px; }
+  .event-teaser .button { grid-column: 1 / -1; }
+}

@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { defaultSettings, normalizeSettings, defaultSchedule, defaultCoaches, normalizeCoaches, availableGroups, normalizeSchedule, groupLabel } from '../src/data.js';
 import { validEndpoint, apiRequest } from '../src/api.js';
 
@@ -87,4 +88,23 @@ test('POST uses text/plain to avoid CORS preflight and only accepts confirmed AP
   await assert.rejects(apiRequest(endpoint, {}, { method: 'POST' }), /не ответил/);
   global.fetch = async () => ({ ok: false });
   await assert.rejects(apiRequest(endpoint, {}, { method: 'POST' }), /недоступен/);
+});
+
+test('LEONIDAS SWIM CUP data matches the regulations and the Apps Script contract', async () => {
+  const { leonidasCup, distanceGroups, ageOnDate, ageGroupFor, registrationOpen, distanceLabel } = await import('../src/events-data.js');
+  const ids = distanceGroups.flatMap(group => group.items.map(item => item.id));
+  assert.equal(ids.length, 16);
+  assert.equal(new Set(ids).size, 16);
+  const backend = readFileSync(new URL('../google-apps-script/Code.gs', import.meta.url), 'utf8');
+  for (const id of ids) assert.ok(backend.includes(` ${id}: '`), id);
+  assert.equal(leonidasCup.date, '2027-01-03');
+  assert.ok(backend.includes(`registrationCloses: '${leonidasCup.registrationCloses}'`));
+  assert.equal(ageOnDate('1990-01-04', leonidasCup.date), 36);
+  assert.equal(ageOnDate('1990-01-03', leonidasCup.date), 37);
+  assert.equal(ageOnDate('1990-02-30', leonidasCup.date), '');
+  assert.equal(ageGroupFor(19), null);
+  assert.deepEqual([20, 29, 30, 49, 50, 80].map(age => ageGroupFor(age).id), ['20-29', '20-29', '30-39', '40-49', '50+', '50+']);
+  assert.equal(registrationOpen(leonidasCup, new Date('2026-12-27T18:00:00Z')), true);
+  assert.equal(registrationOpen(leonidasCup, new Date('2026-12-27T19:00:01Z')), false);
+  assert.equal(distanceLabel('relayIm'), 'Эстафеты 4 × 50 м: Комплексное плавание, 200 м');
 });

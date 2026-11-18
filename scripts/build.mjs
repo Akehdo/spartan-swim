@@ -13,6 +13,8 @@ if (config.appsScriptUrl && !/^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\
 await rm(dist, { recursive: true, force: true });
 await mkdir(dist, { recursive: true });
 await cp('index.html', path.join(dist, 'index.html'));
+await cp('events.html', path.join(dist, 'events.html'));
+await cp('events.html', path.join(dist, 'events.html'));
 await cp('src', path.join(dist, 'src'), { recursive: true });
 await cp('public', dist, { recursive: true });
 console.log('Built dist/ — static site, no database or runtime dependencies.');

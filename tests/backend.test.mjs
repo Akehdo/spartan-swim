@@ -393,3 +393,76 @@ test('setup corrects only the old Erik surname and preserves manager edits and p
   assert.equal(erik[1], 'Эрик — имя от менеджера');
   assert.equal(h.triggers.length, 1);
 });
+
+function eventRegistration(overrides = {}) {
+  return { action: 'event_register', eventId: 'leonidas-2027', name: 'Иванов Иван', gender: 'male', birthDate: '1990-01-04',
+    phone: '+7 707 000 5678', city: 'Кокшетау', club: '=HYPERLINK("x")', distances: ['free50', 'free400f', 'relayIm'],
+    consent: true, website: '', requestId: '22222222-3333-4444-8555-666666666666', ...overrides };
+}
+
+function openEventRegistration(h) {
+  // Тесты не зависят от текущей даты: дедлайн турнира переносим в будущее.
+  h.context.EVENTS['leonidas-2027'].registrationCloses = '2999-01-01T00:00:00+05:00';
+}
+
+test('event registration goes to its own sheet with age group from the start date and Telegram summary', () => {
+  const h = harness();
+  openEventRegistration(h);
+  const result = h.post(eventRegistration());
+  assert.equal(result.ok, true);
+  assert.equal(result.notificationSent, true);
+  assert.equal(h.sheets.get('Заявки').rows.length, 1);
+  const sheet = h.sheets.get('Турнир — заявки');
+  assert.equal(sheet.rows[0][0], 'createdAt');
+  assert.equal(sheet.rows.length, 2);
+  const row = sheet.rows[1];
+  assert.equal(row[5], 'Иванов Иван');
+  assert.equal(row[6], 'М');
+  assert.equal(row[7], '1990-01-04');
+  // 4 января ему ещё 36: на день старта, 3 января 2027, — 36 полных лет.
+  assert.equal(row[8], '36');
+  assert.equal(row[9], '30–39');
+  assert.equal(row[12], `'=HYPERLINK("x")`);
+  assert.equal(row[13], '50 м вольный стиль; 400 м кроль (ласты); Эстафета 4×50 комплекс');
+  assert.equal(row[15], 'sent');
+  assert.equal(h.messages.length, 1);
+  assert.match(h.messages[0].data.text, /LEONIDAS SWIM CUP 2027/);
+  assert.match(h.messages[0].data.text, /Клуб \/ команда: =HYPERLINK/);
+  assert.equal(h.post(eventRegistration()).duplicate, true);
+  assert.equal(sheet.rows.length, 2);
+  assert.equal(h.messages.length, 1);
+});
+
+test('event registration rejects closed registration, minors, unknown distances and events', () => {
+  const h = harness();
+  h.context.EVENTS['leonidas-2027'].registrationCloses = '2000-01-01T00:00:00+05:00';
+  assert.equal(h.post(eventRegistration()).error.code, 'REGISTRATION_CLOSED');
+  openEventRegistration(h);
+  const cases = [
+    [{ birthDate: '2007-01-04' }, 'AGE_NOT_ALLOWED'],
+    [{ birthDate: '1990-02-30' }, 'INVALID_BIRTH_DATE'],
+    [{ distances: [] }, 'DISTANCES_REQUIRED'],
+    [{ distances: ['free50', 'free50'] }, 'INVALID_DISTANCE'],
+    [{ distances: ['marathon'] }, 'INVALID_DISTANCE'],
+    [{ eventId: 'other' }, 'EVENT_UNAVAILABLE'],
+    [{ gender: 'other' }, 'INVALID_GENDER'],
+    [{ name: 'Иван' }, 'INVALID_NAME'],
+    [{ consent: false }, 'CONSENT_REQUIRED'],
+  ];
+  for (const [patch, code] of cases) assert.equal(h.post(eventRegistration({ ...patch, requestId: crypto.randomUUID() })).error.code, code);
+  assert.equal(h.post(eventRegistration({ birthDate: '2007-01-03' })).ok, true);
+  assert.equal(h.sheets.get('Турнир — заявки').rows[1][9], '20–29');
+});
+
+test('failed event notifications are retried by the shared background trigger', () => {
+  const h = harness();
+  openEventRegistration(h);
+  h.failTelegram();
+  assert.equal(h.post(eventRegistration()).notificationSent, false);
+  const row = h.sheets.get('Турнир — заявки').rows[1];
+  assert.equal(row[15], 'error');
+  h.restoreTelegram();
+  h.context.retryFailedNotifications();
+  assert.equal(row[15], 'sent');
+  assert.equal(row[16], '2');
+});

@@ -2,12 +2,30 @@
  * Spartan Swim: Google Sheets + Telegram, без отдельной базы данных.
  * Установка: docs/INTEGRATION.md. Никогда не помещайте токен бота в сайт.
  */
-var SHEETS = { settings: 'Настройки', schedule: 'Расписание', coaches: 'Тренеры', registrations: 'Заявки' };
+var SHEETS = { settings: 'Настройки', schedule: 'Расписание', coaches: 'Тренеры', registrations: 'Заявки', eventRegistrations: 'Турнир — заявки' };
 var SCHEDULE_HEADERS = ['id', 'audience', 'days', 'start', 'end', 'level', 'active'];
 var COACH_HEADERS = ['id', 'name', 'role', 'image', 'senior', 'active'];
 var REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'name', 'phone', 'participantName', 'age', 'experience', 'groupId', 'groupDescription', 'consent', 'telegramStatus', 'telegramAttempts', 'coachId', 'coachName'];
 var PUBLIC_SETTING_KEYS = ['brandName', 'coachName', 'heroTitle', 'heroDescription', 'childrenTitle', 'childrenDescription', 'adultsTitle', 'adultsDescription', 'coachIntro', 'location', 'phone', 'whatsapp', 'instagram', 'childrenPrice', 'adultsPrice', 'contactNote'];
 var VALID_DAYS = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+var EVENT_REGISTRATION_HEADERS = ['createdAt', 'requestId', 'registrationId', 'eventId', 'eventTitle', 'name', 'gender', 'birthDate', 'ageOnEventDay', 'ageGroup', 'phone', 'city', 'club', 'distances', 'consent', 'telegramStatus', 'telegramAttempts'];
+var EVENT_STATUS_COLUMN = 16;
+/** Турниры с открытой регистрацией. ID дистанций совпадают с src/events-data.js. */
+var EVENTS = {
+  'leonidas-2027': {
+    title: 'LEONIDAS SWIM CUP 2027', date: '2027-01-03',
+    // Положение: заявки не позднее чем за 7 дней до старта (время Кокшетау, UTC+5).
+    registrationCloses: '2026-12-27T23:59:59+05:00',
+    distances: {
+      free50: '50 м вольный стиль', back50: '50 м на спине', breast50: '50 м брасс', fly50: '50 м баттерфляй',
+      free50f: '50 м вольный стиль (ласты)', back50f: '50 м на спине (ласты)', breast50f: '50 м брасс (ласты)', fly50f: '50 м баттерфляй (ласты)',
+      free200: '200 м кроль', free200f: '200 м кроль (ласты)', im200: '200 м комплекс', im200f: '200 м комплекс (ласты)',
+      free400: '400 м кроль', free400f: '400 м кроль (ласты)',
+      relayFree: 'Эстафета 4×50 кроль', relayIm: 'Эстафета 4×50 комплекс'
+    }
+  }
+};
+var EVENT_AGE_GROUPS = [['20–29', 20, 29], ['30–39', 30, 39], ['40–49', 40, 49], ['50+', 50, 200]];
 
 /** Запустить один раз вручную в проекте, привязанном к Google Таблице. */
 function setup() {
@@ -45,6 +63,7 @@ function setup() {
   migrateCoachNames_(coaches);
   var registrations = ensureSheet_(spreadsheet, SHEETS.registrations, REGISTRATION_HEADERS, []);
   ensureRegistrationHeaders_(registrations);
+  ensureSheet_(spreadsheet, SHEETS.eventRegistrations, EVENT_REGISTRATION_HEADERS, []);
   installNotificationRetry();
 }
 
@@ -74,6 +93,7 @@ function doPost(event) {
     if (!contents || contents.length > 6000) fail_('INVALID_REQUEST', 'Проверьте данные заявки.');
     var input;
     try { input = JSON.parse(contents); } catch (error) { fail_('INVALID_REQUEST', 'Некорректный формат заявки.'); }
+    if (input && input.action === 'event_register') return json_(registerEvent_(input));
     if (!input || input.action !== 'register') fail_('INVALID_REQUEST', 'Неизвестный запрос.');
     return json_(register_(input));
   } catch (error) {
@@ -107,7 +127,7 @@ function register_(input) {
     if (group.audience === 'children' && (data.age < 1 || data.age > 17)) {
       fail_('INVALID_AGE', 'Укажите возраст ребёнка от 1 до 17 лет.');
     }
-    throttle_(data.phone);
+    throttle_(data.phone, 'registration');
     registrationId = Utilities.getUuid();
     var description = describeGroup_(group);
     sheet.appendRow([
@@ -268,25 +288,25 @@ function describeGroup_(group) {
   return (group.audience === 'children' ? 'Дети' : 'Взрослые') + ' · ' + group.days.map(function (day) { return labels[day]; }).join(' ') + ' · ' + group.start + '–' + group.end;
 }
 
-function findRequest_(sheet, requestId) {
+function findRequest_(sheet, requestId, width) {
   if (sheet.getLastRow() < 2) return null;
   var ids = sheet.getRange(2, 2, sheet.getLastRow() - 1, 1).getValues();
   for (var index = 0; index < ids.length; index++) {
-    if (ids[index][0] === requestId) return { row: index + 2, values: sheet.getRange(index + 2, 1, 1, REGISTRATION_HEADERS.length).getValues()[0] };
+    if (ids[index][0] === requestId) return { row: index + 2, values: sheet.getRange(index + 2, 1, 1, width || REGISTRATION_HEADERS.length).getValues()[0] };
   }
   return null;
 }
 
-function throttle_(phone) {
+function throttle_(phone, scope) {
   var digest = Utilities.computeDigest(Utilities.DigestAlgorithm.SHA_256, phone.replace(/\D/g, ''));
-  var key = 'registration:' + Utilities.base64EncodeWebSafe(digest);
+  var key = scope + ':' + Utilities.base64EncodeWebSafe(digest);
   var cache = CacheService.getScriptCache();
   var count = Number(cache.get(key) || 0);
   if (count >= 6) fail_('RATE_LIMIT', 'Вы уже отправили несколько заявок. Пожалуйста, подождите или свяжитесь с тренером.');
   cache.put(key, String(count + 1), 3600);
 }
 
-function deliverNotification_(sheet, rowNumber) {
+function deliverNotification_(sheet, rowNumber, send) {
   // Один lock для отправки и фоновых повторов исключает два уведомления об одной заявке.
   var lock;
   var acquired = false;
@@ -294,7 +314,7 @@ function deliverNotification_(sheet, rowNumber) {
   try {
     lock = LockService.getScriptLock();
     acquired = lock.tryLock(10000);
-    if (acquired) sent = sendNotificationLocked_(sheet, rowNumber);
+    if (acquired) sent = (send || sendNotificationLocked_)(sheet, rowNumber);
   } catch (error) {
     // Заявка уже подтверждённо сохранена. Сбой доставки не меняет результат записи.
     sent = false;
@@ -334,35 +354,154 @@ function sendNotificationLocked_(sheet, rowNumber) {
       'Уровень: ' + (row[7] === 'beginner' ? 'Начинающий' : 'Уверенно держится на воде') + '\n' +
       'Группа: ' + row[9] + '\n' +
       'Тренер: ' + (row[14] ? plainCell_(row[14]) + ' (предпочтение)' : 'Помочь с выбором');
-    var sent = false;
-    try {
-      var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
-        method: 'post', contentType: 'application/json',
-        payload: JSON.stringify({ chat_id: chatId, text: text, link_preview_options: { is_disabled: true } }),
-        muteHttpExceptions: true
-      });
-      var body = JSON.parse(response.getContentText());
-      sent = response.getResponseCode() === 200 && body.ok === true;
-    } catch (error) {
-      // Не логируем URL запроса, токен, текст и персональные данные.
-      sent = false;
-    }
+    var sent = sendTelegram_(token, chatId, text);
     sheet.getRange(rowNumber, 12).setValue(sent ? 'sent' : 'error');
     return sent;
 }
 
+function sendTelegram_(token, chatId, text) {
+  try {
+    var response = UrlFetchApp.fetch('https://api.telegram.org/bot' + token + '/sendMessage', {
+      method: 'post', contentType: 'application/json',
+      payload: JSON.stringify({ chat_id: chatId, text: text, link_preview_options: { is_disabled: true } }),
+      muteHttpExceptions: true
+    });
+    var body = JSON.parse(response.getContentText());
+    return response.getResponseCode() === 200 && body.ok === true;
+  } catch (error) {
+    // Не логируем URL запроса, токен, текст и персональные данные.
+    return false;
+  }
+}
+
 /** Триггер раз в 5 минут; можно запустить вручную. Максимум 10 доставок за запуск. */
 function retryFailedNotifications() {
-  var sheet = getSpreadsheet_().getSheetByName(SHEETS.registrations);
-  if (!sheet || sheet.getLastRow() < 2) return;
-  var rows = sheet.getRange(2, 12, sheet.getLastRow() - 1, 2).getValues();
+  var spreadsheet = getSpreadsheet_();
   var attempted = 0;
-  rows.forEach(function (row, index) {
-    if (attempted < 10 && row[0] !== 'sent' && Number(row[1] || 0) < 5) {
-      attempted++;
-      deliverNotification_(sheet, index + 2);
-    }
+  // Общий лимит — 10 доставок за запуск для обычных заявок и заявок на турнир.
+  [[SHEETS.registrations, 12, undefined], [SHEETS.eventRegistrations, EVENT_STATUS_COLUMN, sendEventNotificationLocked_]].forEach(function (target) {
+    var sheet = spreadsheet.getSheetByName(target[0]);
+    if (!sheet || sheet.getLastRow() < 2) return;
+    sheet.getRange(2, target[1], sheet.getLastRow() - 1, 2).getValues().forEach(function (row, index) {
+      if (attempted < 10 && row[0] !== 'sent' && Number(row[1] || 0) < 5) {
+        attempted++;
+        deliverNotification_(sheet, index + 2, target[2]);
+      }
+    });
   });
+}
+
+/** Регистрация на турнир. Заявки пишутся в отдельный лист «Турнир — заявки». */
+function registerEvent_(input) {
+  var data = validateEventRegistration_(input);
+  var eventInfo = EVENTS[data.eventId];
+  if (new Date().getTime() > new Date(eventInfo.registrationCloses).getTime()) {
+    fail_('REGISTRATION_CLOSED', 'Онлайн-регистрация на турнир завершена. Свяжитесь с организаторами.');
+  }
+  var lock = LockService.getScriptLock();
+  if (!lock.tryLock(10000)) fail_('BUSY', 'Сейчас поступает много заявок. Попробуйте ещё раз через минуту.');
+  var sheet;
+  var rowNumber;
+  var registrationId;
+  try {
+    sheet = getSpreadsheet_().getSheetByName(SHEETS.eventRegistrations);
+    if (!sheet) fail_('NOT_CONFIGURED', 'Регистрация пока недоступна. Свяжитесь с организаторами.');
+    var existing = findRequest_(sheet, data.requestId, EVENT_REGISTRATION_HEADERS.length);
+    if (existing) {
+      return { ok: true, registrationId: existing.values[2], notificationSent: existing.values[EVENT_STATUS_COLUMN - 1] === 'sent', duplicate: true };
+    }
+    throttle_(data.phone, 'event');
+    registrationId = Utilities.getUuid();
+    rowNumber = sheet.getLastRow() + 1;
+    // Текстовый формат: Таблица не превратит дату рождения и телефон в другие значения.
+    sheet.getRange(rowNumber, 1, 1, EVENT_REGISTRATION_HEADERS.length).setNumberFormat('@').setValues([[
+      new Date().toISOString(), data.requestId, registrationId, data.eventId, eventInfo.title,
+      safeCell_(data.name), data.gender === 'male' ? 'М' : 'Ж', data.birthDate, String(data.age), data.ageGroup,
+      safeCell_(data.phone), safeCell_(data.city), safeCell_(data.club),
+      data.distances.map(function (id) { return eventInfo.distances[id]; }).join('; '),
+      'TRUE', 'pending', '0'
+    ]]);
+    SpreadsheetApp.flush();
+  } finally {
+    lock.releaseLock();
+  }
+  var sent = deliverNotification_(sheet, rowNumber, sendEventNotificationLocked_);
+  return { ok: true, registrationId: registrationId, notificationSent: sent };
+}
+
+function validateEventRegistration_(input) {
+  if (input.website) fail_('INVALID_REQUEST', 'Не удалось отправить заявку.');
+  if (input.consent !== true) fail_('CONSENT_REQUIRED', 'Нужно согласие на обработку данных заявки.');
+  var eventId = cleanText_(input.eventId, 80);
+  var eventInfo = Object.prototype.hasOwnProperty.call(EVENTS, eventId) ? EVENTS[eventId] : null;
+  if (!eventInfo) fail_('EVENT_UNAVAILABLE', 'Этот турнир недоступен для регистрации.');
+  var name = cleanText_(input.name, 120);
+  var phone = cleanText_(input.phone, 40);
+  var city = cleanText_(input.city || '', 100);
+  var club = cleanText_(input.club || '', 100);
+  var requestId = cleanText_(input.requestId, 80);
+  if (name.length < 5 || name.split(/\s+/).length < 2) fail_('INVALID_NAME', 'Укажите фамилию и имя участника.');
+  if (!/^[+\d\s()\-]+$/.test(phone) || phone.replace(/\D/g, '').length < 10 || phone.replace(/\D/g, '').length > 15) {
+    fail_('INVALID_PHONE', 'Проверьте номер телефона: от 10 до 15 цифр.');
+  }
+  if (!/^[a-zA-Z0-9_-]{8,80}$/.test(requestId)) fail_('INVALID_REQUEST', 'Обновите страницу и попробуйте снова.');
+  if (input.gender !== 'male' && input.gender !== 'female') fail_('INVALID_GENDER', 'Выберите зачёт: мужчины или женщины.');
+  var birthDate = cleanText_(input.birthDate, 10);
+  var age = ageOnDate_(birthDate, eventInfo.date);
+  if (age === '' || age > 100) fail_('INVALID_BIRTH_DATE', 'Проверьте дату рождения.');
+  var group = EVENT_AGE_GROUPS.filter(function (item) { return age >= item[1] && age <= item[2]; })[0];
+  if (!group) fail_('AGE_NOT_ALLOWED', 'Турнир проводится среди взрослых: на день старта участнику должно быть 20 лет или больше.');
+  if (!Array.isArray(input.distances) || input.distances.length < 1 || input.distances.length > 16) {
+    fail_('DISTANCES_REQUIRED', 'Выберите хотя бы одну дистанцию.');
+  }
+  var seen = {};
+  input.distances.forEach(function (id) {
+    if (typeof id !== 'string' || !Object.prototype.hasOwnProperty.call(eventInfo.distances, id) || seen[id]) {
+      fail_('INVALID_DISTANCE', 'Выберите дистанции из списка.');
+    }
+    seen[id] = true;
+  });
+  return { eventId: eventId, name: name, phone: phone, city: city, club: club, requestId: requestId, gender: input.gender,
+    birthDate: birthDate, age: age, ageGroup: group[0], distances: input.distances.slice() };
+}
+
+/** Полных лет на дату старта; '' для некорректной даты. Совпадает с ageOnDate в src/events-data.js. */
+function ageOnDate_(birthDate, eventDate) {
+  var birth = /^(\d{4})-(\d{2})-(\d{2})$/.exec(birthDate);
+  var event = /^(\d{4})-(\d{2})-(\d{2})$/.exec(eventDate);
+  if (!birth || !event) return '';
+  var y = Number(birth[1]), m = Number(birth[2]), d = Number(birth[3]);
+  var check = new Date(Date.UTC(y, m - 1, d));
+  if (check.getUTCFullYear() !== y || check.getUTCMonth() !== m - 1 || check.getUTCDate() !== d) return '';
+  var ey = Number(event[1]), em = Number(event[2]), ed = Number(event[3]);
+  var age = ey - y - (em < m || (em === m && ed < d) ? 1 : 0);
+  return age >= 0 ? age : '';
+}
+
+function sendEventNotificationLocked_(sheet, rowNumber) {
+  var row = sheet.getRange(rowNumber, 1, 1, EVENT_REGISTRATION_HEADERS.length).getValues()[0];
+  if (row[EVENT_STATUS_COLUMN - 1] === 'sent') return true;
+  var attempts = Number(row[EVENT_STATUS_COLUMN] || 0);
+  var properties = PropertiesService.getScriptProperties();
+  var token = properties.getProperty('TELEGRAM_BOT_TOKEN');
+  var chatId = properties.getProperty('TELEGRAM_CHAT_ID');
+  if (!token || !chatId) {
+    sheet.getRange(rowNumber, EVENT_STATUS_COLUMN).setValue('not_configured');
+    return false;
+  }
+  if (attempts >= 5) return false;
+  sheet.getRange(rowNumber, EVENT_STATUS_COLUMN + 1).setValue(String(attempts + 1));
+  var text = '🏆 Регистрация на турнир · ' + row[4] + '\n\n' +
+    'Участник: ' + plainCell_(row[5]) + '\n' +
+    'Зачёт: ' + (row[6] === 'М' ? 'мужчины' : 'женщины') + ' · ' + row[9] + ' (' + row[8] + ' лет на день старта)\n' +
+    'Телефон: ' + plainCell_(row[10]) + '\n' +
+    'WhatsApp: https://wa.me/' + plainCell_(row[10]).replace(/\D/g, '') + '\n' +
+    (row[11] ? 'Город: ' + plainCell_(row[11]) + '\n' : '') +
+    (row[12] ? 'Клуб / команда: ' + plainCell_(row[12]) + '\n' : '') +
+    'Дистанции: ' + row[13];
+  var sent = sendTelegram_(token, chatId, text);
+  sheet.getRange(rowNumber, EVENT_STATUS_COLUMN).setValue(sent ? 'sent' : 'error');
+  return sent;
 }
 
 function ensureSheet_(spreadsheet, name, headers, rows) {
